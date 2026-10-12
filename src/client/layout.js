@@ -4,7 +4,7 @@ import { getSlides, slideOf, slideVisible, slideOpacity } from './slides.js';
 import { describeElement, cssPath } from './anchor.js';
 import { h, clamp, trunc, norm, uid } from './util.js';
 import { icon } from './icons.js';
-import { scheduleRender, registerRenderer } from './ui/overlay.js';
+import { scheduleRender, registerRenderer, setHover } from './ui/overlay.js';
 import { toast } from './ui/feedback.js';
 import { popoverOpen } from './ui/popover.js';
 import * as A from './actions.js';
@@ -22,6 +22,8 @@ import { layoutSummary } from './summary.js';
 
 const SNAP_PX = 6;
 const HOME_PX = 12; // dragging back this close to the original position puts it exactly back
+const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+const NUDGE_TIP_KEY = 'redpen:nudge-tip';
 const MEDIA = /^(img|video|svg|canvas|picture|iframe|object|embed)$/;
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 const CURSOR = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize' };
@@ -368,6 +370,7 @@ export function select(el) {
     return;
   }
   sel = { el };
+  setHover(null); // the selection draws its own outline and label
   buildBar();
   scheduleRender();
 }
@@ -1000,6 +1003,11 @@ export function onKey(e) {
     commentSelected();
     return true;
   }
+  const arrow = ARROWS[e.key];
+  if (arrow && e.shiftKey) {
+    nudge(...arrow, e.altKey);
+    return true;
+  }
   if (e.altKey && e.key === 'ArrowUp') {
     const p = sel.el.parentElement;
     if (p && p !== document.body) select(p);
@@ -1010,10 +1018,13 @@ export function onKey(e) {
     if (c) select(c);
     return true;
   }
-  const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-  if (arrows[e.key] && !e.altKey) {
-    nudge(...arrows[e.key], e.shiftKey);
-    return true;
+  if (arrow) {
+    // plain arrows belong to the deck: they turn the page even with something selected
+    if (!localStorage.getItem(NUDGE_TIP_KEY)) {
+      localStorage.setItem(NUDGE_TIP_KEY, '1');
+      toast('선택한 요소를 조금씩 옮기려면 Shift+방향키', { ms: 2600 });
+    }
+    return false;
   }
   if (e.key === '+' || e.key === '=') {
     fontStep(1);
@@ -1122,6 +1133,7 @@ function coach() {
       h('li', null, '바꿀 요소(카드·이미지·글 상자)를 ', h('b', null, '클릭'), ' → 끌어서 옮기기'),
       h('li', null, '다른 칸 위에 놓으면 ', h('b', null, '순서 바꾸기')),
       h('li', null, '모서리 손잡이로 ', h('b', null, '크기'), ', 막대에서 글자·간격·여백'),
+      h('li', null, h('kbd', null, 'Shift'), '+방향키 조금씩 옮기기 · 방향키만 누르면 슬라이드 넘기기'),
       h('li', null, h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'C'), ' 코멘트 · ', h('kbd', null, 'Esc'), ' 선택 해제')),
     h('button', {
       class: 'btn',

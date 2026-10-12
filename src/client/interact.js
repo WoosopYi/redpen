@@ -18,6 +18,7 @@ import { sketchOpen, sketchKey } from './sketch.js';
 
 let ready = false;
 let pointerDown = false;
+let passPress = false; // this press belongs to one of the deck's own controls
 let swallowClick = false;
 let region = null;
 let selTimer = 0;
@@ -33,6 +34,7 @@ const active = () => ready && !S.paused;
 const picking = () => active() && (S.mode === 'element' || S.mode === 'region');
 
 const swallowedKeys = new Set(); // keydowns we consumed: their keyup must not reach the deck either
+const PAGE_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
 
 function block(e) {
   e.preventDefault();
@@ -71,6 +73,13 @@ const inDeck = (node) => {
   const el = node && (node.nodeType === 1 ? node : node.parentElement);
   return !!el && !!document.body?.contains(el);
 };
+
+/** One of the deck's own controls outside every slide (its ← → buttons, page dots…): it keeps working in every mode. */
+function deckControl(e) {
+  const el = e.target?.nodeType === 1 ? e.target : e.target?.parentElement;
+  const control = el?.closest?.(CONTROL);
+  return !!control && !getSlides().single && inDeck(control) && !slideOf(control);
+}
 
 function pickable(target) {
   let el = target && (target.nodeType === 1 ? target : target.parentElement);
@@ -188,6 +197,7 @@ function onKeyDown(e) {
     block(e);
     return;
   }
+  if (S.mode === 'element' && PAGE_KEYS.has(e.key)) setHover(null); // the deck may turn the page under the pointer
   if (mod && e.code === 'KeyZ') {
     if (e.shiftKey ? A.redo() : A.undo()) block(e);
     return;
@@ -233,6 +243,10 @@ function onPointerDown(e) {
       return;
     }
   }
+  if (picking() && deckControl(e)) {
+    passPress = true; // e.g. the deck's → button: turn the page instead of picking the button
+    return;
+  }
   if (S.mode === 'element') {
     block(e);
     if (e.button === 0) L.press(e, pickable(e.target));
@@ -266,13 +280,17 @@ function onPointerMove(e) {
   }
   if (S.mode === 'element') {
     L.move(e);
-    const over = !L.dragging() && !popoverOpen() && !isOurs(e) ? pickable(e.target) : null;
+    const over = !L.dragging() && !popoverOpen() && !isOurs(e) && !deckControl(e) ? pickable(e.target) : null;
     setHover(over && over !== L.selected() ? over : null); // the selection draws its own outline
   }
 }
 
 function onPointerUp(e) {
   pointerDown = false;
+  if (passPress) {
+    passPress = false;
+    return;
+  }
   if (!active()) return;
   if (region) {
     block(e);
@@ -300,7 +318,7 @@ function onPointerUp(e) {
 }
 
 function onPressGuard(e) {
-  if (picking() && !isOurs(e)) block(e);
+  if (picking() && !isOurs(e) && !deckControl(e)) block(e);
 }
 
 function onClick(e) {
@@ -310,12 +328,8 @@ function onClick(e) {
     block(e);
     return;
   }
-  if (S.mode === 'element') {
-    block(e); // selection happened on pointerup (see layout.js)
-    return;
-  }
-  if (S.mode === 'region') {
-    block(e);
+  if (picking()) {
+    if (!deckControl(e)) block(e); // element mode selects on pointerup (see layout.js)
     return;
   }
   // text mode: the deck's real controls keep working…

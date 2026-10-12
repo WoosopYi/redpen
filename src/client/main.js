@@ -195,6 +195,7 @@ async function init() {
   setInterval(() => {
     const { els, single } = getSlides();
     const i = single ? -1 : currentSlideIndex();
+    if (i < 0 && !single && lastSlide) return; // mid-transition, no slide visible yet: keep the last number
     const key = `${i}/${els.length}`;
     if (key === lastSlide) return;
     lastSlide = key;

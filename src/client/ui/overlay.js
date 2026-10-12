@@ -357,7 +357,8 @@ function renderFrame() {
 
   // element picker
   const target = pickedEl || hoverEl;
-  if (target?.isConnected) {
+  const targetSlide = target && slideOf(target);
+  if (target?.isConnected && (!targetSlide || slideVisible(targetSlide))) { // not once the deck has turned the page
     const r = target.getBoundingClientRect();
     hoverBox.className = `hover-box${pickedEl ? ' picked' : ''}`;
     hoverBox.style.display = '';

@@ -625,7 +625,41 @@ async function layoutDeck(browser) {
   list = await items();
   check(list[0].L.font && list[0].L.font.to > list[0].L.font.from, 'font size mark', list[0].L.font);
   check((await cards())[0].fs > c0[0].fs, 'font previewed bigger');
-  await page.keyboard.press('Escape');
+
+  title("with something selected: Shift+arrows nudge it; plain arrows and the deck's own ← → buttons turn the page");
+  const x1 = (await items())[0].L.to.x;
+  await page.keyboard.down('Shift');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.up('Shift');
+  await sleep(200);
+  const x2 = (await items())[0].L.to.x;
+  check(Math.abs(x2 - x1 - 0.005) < 0.001 && await $.activeSlide() === 2, 'Shift+→ nudged it 0.5% right, same slide', { x1, x2 });
+  const other = (await cards())[1];
+  await page.mouse.move(other.x + 40, other.y + 40);
+  await sleep(100);
+  check((await $.shadow('.hover-box'))?.visible, 'hovering the other card outlines it');
+  await page.keyboard.press('ArrowRight');
+  await sleep(50);
+  check(!(await $.shadow('.hover-box'))?.visible, 'no stale hover outline from the previous slide');
+  await sleep(250);
+  check(await $.activeSlide() === 3, '→ turns the page even with an element selected');
+  check(!(await $.shadow('.lsel'))?.visible, 'the selection goes away with its slide');
+  check((await $.shadowAll('.toast')).some((t) => t.includes('Shift+방향키')), 'one-time tip: Shift+arrows move the element');
+  await page.keyboard.press('ArrowLeft');
+  await sleep(300);
+  check(await $.activeSlide() === 2 && (await cards())[0].translate, '← comes back, previews intact');
+  const deckButton = (id) => page.evaluate((id) => {
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, id);
+  let nb = await deckButton('next');
+  await page.mouse.click(nb.x, nb.y);
+  await sleep(300);
+  check(await $.activeSlide() === 3 && !(await $.shadow('.lsel'))?.visible && (await items()).length === 1, "the deck's → button turns the page in 레이아웃 mode (not picked)");
+  nb = await deckButton('prev');
+  await page.mouse.click(nb.x, nb.y);
+  await sleep(300);
+  check(await $.activeSlide() === 2, "the deck's ← button too");
 
   title('dropping a card on the front half of its sibling changes the order');
   c = await cards();
