@@ -2,7 +2,7 @@ import { S } from './state.js';
 import * as A from './actions.js';
 import { ui, isOurs, typingIn } from './ui/root.js';
 import { getSlides, slideOf, slideVisible } from './slides.js';
-import { showSelBar, hideSelBar, selBarRange, selBarLive, setHover, setRegionDraft, scheduleRender } from './ui/overlay.js';
+import { showSelBar, hideSelBar, selBarRange, selBarLive, setHover, setRegionDraft, scheduleRender, renderBurst } from './ui/overlay.js';
 import { popoverOpen, popoverDirty, closePopover, shakePopover } from './ui/popover.js';
 import { modalOpen, closeTopModal } from './ui/feedback.js';
 import { isEditable, clamp } from './util.js';
@@ -377,7 +377,12 @@ export function install() {
   document.addEventListener('selectionchange', onSelectionChange);
   addEventListener('scroll', scheduleRender, { capture: true, passive: true });
   addEventListener('resize', scheduleRender);
-  for (const t of ['transitionend', 'animationend', 'hashchange', 'load', 'keyup', 'wheel']) {
+  for (const t of ['transitionend', 'animationend', 'load', 'keyup', 'wheel']) {
     addEventListener(t, scheduleRender, { capture: true, passive: true });
+  }
+  // Any key, click or hash change may switch slides. The deck reacts during this same event, so a redraw
+  // on the next frame already sees the new slide — marks of the old one never linger over it.
+  for (const t of ['keydown', 'pointerup', 'click', 'hashchange', 'popstate']) {
+    addEventListener(t, () => renderBurst(), { capture: true, passive: true });
   }
 }

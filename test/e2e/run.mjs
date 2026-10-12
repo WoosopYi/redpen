@@ -689,6 +689,104 @@ async function layoutDeck(browser) {
   await page.close();
 }
 
+// ---- scenario 5: marks follow slide switches without lag ------------------------------------
+
+const FADE_DECK = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>fade</title><style>
+  body { margin: 0; font: 32px/1.6 sans-serif; }
+  .slide { position: absolute; inset: 0; padding: 80px; opacity: 0; visibility: hidden; transition: opacity .5s linear, visibility .5s linear; }
+  .slide.on { opacity: 1; visibility: visible; }
+</style></head><body>
+  <section class="slide on"><p>첫 번째 슬라이드의 문장입니다</p></section>
+  <section class="slide"><p>두 번째 슬라이드</p></section>
+<script>
+  let c = 0; const S = [...document.querySelectorAll('.slide')];
+  const go = (i) => { S[c].classList.remove('on'); c = Math.max(0, Math.min(S.length - 1, i)); S[c].classList.add('on'); };
+  document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') go(c + 1); if (e.key === 'ArrowLeft') go(c - 1); });
+</script></body></html>`;
+
+/** Watch the first pin every animation frame for `ms`: [[t, 'hidden' | opacity], …] */
+const samplePin = (page, ms) => page.evaluate((ms) => new Promise((resolve) => {
+  const pin = document.getElementById('__redpen-host').shadowRoot.querySelector('.pin');
+  const t0 = performance.now();
+  const out = [];
+  const tick = () => {
+    const t = performance.now() - t0;
+    out.push([Math.round(t), pin.style.display === 'none' ? 'hidden' : Number(pin.style.opacity || 1)]);
+    if (t < ms) requestAnimationFrame(tick);
+    else resolve(out);
+  };
+  requestAnimationFrame(tick);
+}), ms);
+
+async function switchDeck(browser) {
+  // (a) a deck that hides the old slide at once: its marks must vanish on the very next frame
+  const deck = copyExample('basic');
+  const dir = path.join(OUT, 'switch');
+  fs.cpSync(path.dirname(deck), dir, { recursive: true, filter: (p) => !p.includes('.redpen') });
+  const file = path.join(dir, 'index.html');
+  const url = /(http:\/\/localhost:\d+\/\S+)/.exec(cli('open', file, '--no-open', '--port', '0'))[1];
+  console.log(`\n=== slide switching: ${url}`);
+  let { page, errors } = await openPage(browser, `${url}#3`);
+  let $ = helpers(page);
+
+  title('comment pins disappear the moment the deck changes slides');
+  await $.dragSelect('잘하는 일');
+  await page.keyboard.press('KeyC');
+  await sleep(150);
+  await page.keyboard.type('제목을 바꿔줘');
+  await page.keyboard.press('Enter');
+  await sleep(400);
+  const next = await page.evaluate(() => { const b = document.getElementById('next').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+  let watch = samplePin(page, 500);
+  await sleep(40);
+  const clickAt = await page.evaluate(() => performance.now());
+  await page.mouse.click(next.x, next.y);
+  let rows = await watch;
+  const t0 = rows.find(([, v]) => v === 'hidden')?.[0];
+  check(t0 !== undefined && rows.filter(([t, v]) => t > t0 && v !== 'hidden').length === 0, 'pin hidden right after the deck\'s next button (and stays hidden)', rows.slice(0, 12));
+  check(t0 !== undefined && t0 < 140, `hidden within a few frames (at ~${t0}ms of a 40ms+click window)`);
+  await page.keyboard.press('ArrowLeft');
+  await sleep(500);
+  watch = samplePin(page, 400);
+  await sleep(40);
+  await page.keyboard.down('ArrowRight');
+  await sleep(200); // key held: must not wait for keyup
+  await page.keyboard.up('ArrowRight');
+  rows = await watch;
+  const tk = rows.find(([, v]) => v === 'hidden')?.[0];
+  check(tk !== undefined && tk < 120, `pin hidden on keydown, not keyup (at ~${tk}ms, key held 200ms)`, rows.slice(0, 10));
+  void clickAt;
+  check(errors.length === 0, 'no page errors', errors);
+  await page.close();
+  cli('stop', file);
+
+  // (b) a deck that fades slides out: marks fade along instead of popping over the next slide
+  const fdir = path.join(OUT, 'fade');
+  fs.mkdirSync(fdir, { recursive: true });
+  const ffile = path.join(fdir, 'index.html');
+  fs.writeFileSync(ffile, FADE_DECK);
+  const furl = /(http:\/\/localhost:\d+\/\S+)/.exec(cli('open', ffile, '--no-open', '--port', '0'))[1];
+  ({ page, errors } = await openPage(browser, furl));
+  $ = helpers(page);
+  title('on fading decks, marks fade out with their slide');
+  await $.dragSelect('슬라이드의 문장');
+  await page.keyboard.press('KeyC');
+  await sleep(150);
+  await page.keyboard.type('더 짧게');
+  await page.keyboard.press('Enter');
+  await sleep(400);
+  watch = samplePin(page, 800);
+  await sleep(30);
+  await page.keyboard.press('ArrowRight');
+  rows = await watch;
+  const mid = rows.filter(([, v]) => typeof v === 'number' && v > 0.08 && v < 0.92);
+  check(mid.length >= 3, `pin faded through ${mid.length} in-between frames`, rows.filter((_, i) => i % 3 === 0).slice(0, 16));
+  check(rows.at(-1)[1] === 'hidden', 'pin gone once the slide has faded out');
+  check(errors.length === 0, 'no page errors', errors);
+  await page.close();
+  cli('stop', ffile);
+}
+
 // ---- run ---------------------------------------------------------------------------------
 
 if (!CHROME) {
@@ -707,6 +805,7 @@ try {
   await jsDeck(browser);
   await edgeDeck(browser);
   await layoutDeck(browser);
+  await switchDeck(browser);
 } catch (err) {
   failures++;
   console.error(`\n💥 ${err.stack || err}`);

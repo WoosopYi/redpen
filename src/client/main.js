@@ -6,7 +6,7 @@ import { install, setReady } from './interact.js';
 import { mountRoot, setModeStyle, ui } from './ui/root.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPanel } from './ui/panel.js';
-import { initOverlay, scheduleRender, refreshHighlights } from './ui/overlay.js';
+import { initOverlay, scheduleRender, renderBurst, refreshHighlights } from './ui/overlay.js';
 import { popoverDirty } from './ui/popover.js';
 import { toast, banner, hideBanner, statusBanner, modalOpen } from './ui/feedback.js';
 import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, goToSlide, slideTitle } from './slides.js';
@@ -165,6 +165,14 @@ async function init() {
     }, 350);
   };
   new MutationObserver(reanchorSoon).observe(document.body, { childList: true, subtree: true });
+  // A slide (or a wrapper of slides) changing class/style means slides are switching: follow every frame.
+  new MutationObserver((mutations) => {
+    const { set, els } = getSlides();
+    const first = els[0];
+    const switching = mutations.some((m) => set.has(m.target) || (first && m.target !== first && m.target.contains?.(first)));
+    if (switching) renderBurst();
+    else scheduleRender();
+  }).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'aria-current', 'data-state', 'data-active'] });
   addEventListener('load', reanchorSoon);
   setTimeout(reanchorSoon, 1000);
 

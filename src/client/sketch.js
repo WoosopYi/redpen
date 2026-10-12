@@ -1,6 +1,6 @@
 import { S, mutate } from './state.js';
 import { ui } from './ui/root.js';
-import { slideVisible } from './slides.js';
+import { slideOpacity } from './slides.js';
 import { slideMeta, whereLabel, elementsIn } from './anchor.js';
 import { h, clamp, uid } from './util.js';
 import { icon } from './icons.js';
@@ -205,7 +205,8 @@ function renderViews() {
     for (const it of S.items) {
       if (it.type !== 'layout' || it.target !== 'sketch' || !it.sketch) continue;
       const slideEl = it._slide;
-      if (!slideEl || (slideEl !== document.body && !slideVisible(slideEl))) continue;
+      const op = slideEl === document.body ? 1 : slideOpacity(slideEl);
+      if (!slideEl || op <= 0) continue;
       seen.add(it.id);
       let v = views.get(it.id);
       const key = JSON.stringify(it.sketch.boxes);
@@ -221,7 +222,13 @@ function renderViews() {
         views.set(it.id, v);
       }
       const r = slideEl.getBoundingClientRect();
-      Object.assign(v.el.style, { display: '', transform: `translate(${r.left}px, ${r.top}px)`, width: `${r.width}px`, height: `${r.height}px` });
+      Object.assign(v.el.style, {
+        display: '',
+        opacity: op < 0.995 ? String(Math.round(op * 100) / 100) : '',
+        transform: `translate(${r.left}px, ${r.top}px)`,
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+      });
     }
   }
   for (const [id, v] of views) {

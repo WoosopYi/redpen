@@ -1,6 +1,6 @@
 import { ui } from './root.js';
 import { S, ordered, numbering, TYPE_LABEL } from '../state.js';
-import { slideOf, slideVisible } from '../slides.js';
+import { slideOf, slideVisible, slideOpacity } from '../slides.js';
 import { h, clamp, trunc } from '../util.js';
 import { icon } from '../icons.js';
 import { itemSummary } from '../summary.js';
@@ -39,6 +39,18 @@ export function initOverlay(opts) {
 export function scheduleRender() {
   if (!raf) raf = requestAnimationFrame(renderFrame);
 }
+
+let burstUntil = 0;
+/** Redraw every frame for a while — slides are switching or animating, marks must follow without lag. */
+export function renderBurst(ms = 700) {
+  burstUntil = Math.max(burstUntil, performance.now() + ms);
+  scheduleRender();
+}
+
+/** Opacity for a mark on a slide that is `op` visible ('' = fully, to keep the style clean). */
+const fade = (el, op) => {
+  el.style.opacity = op < 0.995 ? String(Math.round(op * 100) / 100) : '';
+};
 
 const renderers = [];
 /** Extra drawing passes (layout selection, sketches) that run every frame after the marks. */
@@ -215,6 +227,7 @@ function cardText(it) {
 function renderFrame() {
   raf = 0;
   if (!ui.layer) return;
+  if (performance.now() < burstUntil) scheduleRender();
   positionSelBar();
   if (S.paused) {
     ui.layer.style.display = 'none';
@@ -223,10 +236,10 @@ function renderFrame() {
   ui.layer.style.display = '';
 
   const nums = numbering();
-  const visCache = new Map();
-  const slideOn = (s) => {
-    if (!visCache.has(s)) visCache.set(s, slideVisible(s));
-    return visCache.get(s);
+  const opCache = new Map();
+  const slideOp = (s) => {
+    if (!opCache.has(s)) opCache.set(s, slideOpacity(s));
+    return opCache.get(s);
   };
   const placed = [];
   const seen = new Set();
@@ -234,7 +247,8 @@ function renderFrame() {
   for (const it of ordered()) {
     seen.add(it.id);
     const n = nodeFor(it);
-    const g = (!it._slide || slideOn(it._slide)) ? geometry(it) : null;
+    const op = it._slide ? slideOp(it._slide) : 1;
+    const g = op > 0 ? geometry(it) : null;
     const t = `t-${it.type}`;
     const focus = S.focusId === it.id;
     n.pin.className = `pin ${t}${focus ? ' focus' : ''}`;
@@ -276,6 +290,7 @@ function renderFrame() {
     for (let guard = 0; guard < 12 && placed.some((p) => Math.abs(p[0] - px) < 18 && Math.abs(p[1] - py) < 18); guard++) px += 20;
     placed.push([px, py]);
     n.pin.style.display = '';
+    fade(n.pin, op);
     place(n.pin, px, py);
 
     // box for element / region / slide marks
@@ -288,6 +303,7 @@ function renderFrame() {
       n.box.className = `box ${it.target} ${t}${focus ? ' focus' : ''}`;
       if (it.target === 'slide' && !n.box.firstChild) n.box.append(h('span', { class: 'tag' }, '슬라이드 삭제'));
       n.box.style.display = '';
+      fade(n.box, op);
       size(n.box, g.box);
     } else if (n.box) n.box.style.display = 'none';
 
@@ -304,6 +320,7 @@ function renderFrame() {
       n.chip.className = `chip ${t}`;
       n.chip.replaceChildren(h('span', { class: 'arrow' }, it.type === 'replace' || it.move ? '→' : '💬'), trunc(chipText, 60) || '(빈칸)');
       n.chip.style.display = '';
+      fade(n.chip, op);
       place(n.chip, Math.min(px + 24, innerWidth - 120), py);
     } else if (n.chip) n.chip.style.display = 'none';
 
@@ -319,6 +336,7 @@ function renderFrame() {
         m.style.display = r ? '' : 'none';
         if (r) {
           m.className = `mark ${t}`;
+          fade(m, op);
           size(m, r);
         }
       });

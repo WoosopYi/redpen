@@ -91,18 +91,29 @@ export function slideTitle(el) {
   return norm(el.textContent).slice(0, 40);
 }
 
-/** Is the slide actually on screen (not display:none / visibility:hidden / opacity 0 / off-screen)? */
-export function slideVisible(el) {
-  if (!el) return false;
-  if (el === document.body) return true;
+/**
+ * How visible a slide is right now: 0 when display:none / visibility:hidden / faded out / off-screen,
+ * otherwise its effective opacity (mid-transition values included), so marks can fade along with it.
+ */
+export function slideOpacity(el) {
+  if (!el) return 0;
+  if (el === document.body) return 1;
   const r = el.getBoundingClientRect();
-  if (r.width < 2 || r.height < 2) return false;
-  if (r.right <= 0 || r.bottom <= 0 || r.left >= innerWidth || r.top >= innerHeight) return false;
+  if (r.width < 2 || r.height < 2) return 0;
+  if (r.right <= 0 || r.bottom <= 0 || r.left >= innerWidth || r.top >= innerHeight) return 0;
+  let opacity = 1;
   for (let e = el, depth = 0; e && e !== document.documentElement && depth < 8; e = e.parentElement, depth++) {
     const cs = getComputedStyle(e);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return false;
+    if (cs.display === 'none' || cs.visibility === 'hidden') return 0;
+    opacity *= Number(cs.opacity);
+    if (opacity < 0.05) return 0;
   }
-  return true;
+  return opacity;
+}
+
+/** Is the slide actually on screen (not display:none / visibility:hidden / opacity 0 / off-screen)? */
+export function slideVisible(el) {
+  return slideOpacity(el) > 0;
 }
 
 function visibleArea(el) {

@@ -1,6 +1,6 @@
 import { S, mutate } from './state.js';
 import { ui } from './ui/root.js';
-import { getSlides, slideOf, slideVisible } from './slides.js';
+import { getSlides, slideOf, slideVisible, slideOpacity } from './slides.js';
 import { describeElement, cssPath } from './anchor.js';
 import { h, clamp, trunc, norm, uid } from './util.js';
 import { icon } from './icons.js';
@@ -1011,10 +1011,15 @@ function renderMarks() {
       const n = markNodes(it.id);
       const el = it._el;
       const slideEl = it._slide || (el && slideOf(el));
-      if (!el?.isConnected || (slideEl && slideEl !== document.body && !slideVisible(slideEl))) {
+      const op = slideEl && slideEl !== document.body ? slideOpacity(slideEl) : 1;
+      if (!el?.isConnected || op <= 0) {
         hideMark(n);
         continue;
       }
+      const o = op < 0.995 ? String(Math.round(op * 100) / 100) : '';
+      n.ghost.style.opacity = o;
+      n.out.style.opacity = o;
+      n.line.style.opacity = o;
       const s = (slideEl || document.body).getBoundingClientRect();
       const L = it.layout;
       const shifted = !!(L.to || L.reorder);
