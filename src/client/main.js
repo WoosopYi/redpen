@@ -19,7 +19,7 @@ install();
 
 const POS_KEY = `redpen:pos:${config.deckPath}`;
 
-function savePosition(reloaded) {
+function savePosition(reason) {
   try {
     sessionStorage.setItem(POS_KEY, JSON.stringify({
       t: Date.now(),
@@ -29,7 +29,7 @@ function savePosition(reloaded) {
       panel: S.panelOpen,
       tab: S.panelTab,
       mode: S.mode,
-      reloaded,
+      reason: reason || null,
     }));
   } catch {
     /* storage unavailable */
@@ -54,17 +54,18 @@ function restorePosition() {
     if (pos.x || pos.y) scrollTo(pos.x, pos.y);
     scheduleRender();
   }, 120);
-  if (pos.reloaded) toast('🔄 HTML이 바뀌어서 새로고침했어요', { ms: 2200 });
+  if (pos.reason === 'html') toast('🔄 HTML이 바뀌어서 새로고침했어요', { ms: 2200 });
+  if (pos.reason === 'tool') toast('✨ 빨간펜이 새 버전으로 바뀌어서 새로고침했어요', { ms: 3000 });
 }
 
 let reloadPending = false;
 let reloading = false;
 
-async function reloadNow() {
+async function reloadNow(reason = 'html') {
   reloading = true;
   hideBanner();
   await saveNow();
-  savePosition(true);
+  savePosition(reason);
   location.reload();
 }
 
@@ -72,11 +73,25 @@ function onFilesChanged() {
   if (popoverDirty() || modalOpen()) {
     if (!reloadPending) {
       reloadPending = true;
-      banner('HTML이 바뀌었어요', [{ label: '새로고침', primary: true, run: reloadNow }]);
+      banner('HTML이 바뀌었어요', [{ label: '새로고침', primary: true, run: () => reloadNow('html') }]);
     }
     return;
   }
-  reloadNow();
+  reloadNow('html');
+}
+
+/** The tab runs older tool code than the server now serves (updated + restarted): reload to get it. */
+let toolUpdatePending = false;
+function checkBuild(build) {
+  if (!build || !config.build || build === config.build || reloading) return;
+  if (popoverDirty() || modalOpen() || sketchOpen() || L.dragging()) {
+    if (!toolUpdatePending) {
+      toolUpdatePending = true;
+      banner('빨간펜이 새 버전으로 바뀌었어요', [{ label: '새로고침', primary: true, run: () => reloadNow('tool') }]);
+    }
+    return;
+  }
+  reloadNow('tool');
 }
 
 function onboard() {
@@ -85,7 +100,7 @@ function onboard() {
     h('h4', null, '✒️ 화면에 바로 표시하세요'),
     h('ul', null,
       h('li', null, '텍스트를 드래그 → ', h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'R'), ' 수정 · ', h('kbd', null, 'C'), ' 코멘트'),
-      h('li', null, h('b', null, '요소·배치'), ' — 클릭해서 끌면 이동, 모서리로 크기, 글자·간격 조절'),
+      h('li', null, h('b', null, '레이아웃'), ' — 클릭해서 끌면 이동, 모서리로 크기, 글자·간격 조절'),
       h('li', null, '영역 모드로 빈 공간에 지시, 슬라이드 메뉴로 새 배치 스케치'),
       h('li', null, '다 했으면 ', h('b', null, 'AI에게 보내기'), ' → AI 세션이 이어서 반영')),
     h('button', {
@@ -201,7 +216,10 @@ async function init() {
     if (!ok) retryTimer = setTimeout(saveNow, 3000);
   });
   api.connect({
-    state: (st) => A.onState(st),
+    state: (st) => {
+      A.onState(st);
+      checkBuild(st.build);
+    },
     draft: (d) => {
       if (d.clientId !== clientId) A.onRemoteDraft(d);
     },
@@ -228,7 +246,7 @@ async function init() {
 
   addEventListener('pagehide', () => {
     saveOnExit();
-    if (!reloading) savePosition(false);
+    if (!reloading) savePosition(null);
   });
   onboard();
 }

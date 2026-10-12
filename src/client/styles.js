@@ -145,6 +145,13 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 .larrows line { stroke: #8e4ec6; stroke-width: 2; stroke-dasharray: 6 4; }
 .box.t-layout { border: 1.5px dashed var(--c); background: transparent; }
 
+.lhint {
+  position: fixed; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+  background: #8e4ec6; color: #fff; font-size: 12.5px; font-weight: 650; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 6px 18px rgba(142, 78, 198, .35); animation: rp-pop .15s ease-out;
+}
+.lcoach { width: 330px; }
+
 /* ── layout bar ──────────────────────────────────────── */
 .lbar {
   position: fixed; z-index: 2; display: flex; flex-direction: column; gap: 6px; padding: 8px; max-width: min(580px, 94vw);

@@ -156,7 +156,10 @@ function helpers(page) {
 async function openPage(browser, url) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
-  await page.evaluateOnNewDocument(() => localStorage.setItem('redpen:onboarded', '1'));
+  await page.evaluateOnNewDocument(() => {
+    localStorage.setItem('redpen:onboarded', '1');
+    if (!sessionStorage.getItem('rp-test-coach')) localStorage.setItem('redpen:layout-tip', '1');
+  });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test(m.text())) errors.push(m.text()); });
@@ -563,13 +566,22 @@ async function layoutDeck(browser) {
     return { x: b.left + b.width / 2, y: b.top + b.height / 2, off: st.classList.contains('off') };
   }, n, plus);
 
-  title('요소·배치 mode: click selects with handles and a layout bar');
+  title('레이아웃 mode: first-use card, hint, then click selects with handles and a layout bar');
+  check((await $.shadow('.tb[data-mode="element"]'))?.text.includes('레이아웃'), 'toolbar button is called 레이아웃');
+  await page.evaluate(() => localStorage.removeItem('redpen:layout-tip'));
   await $.clickShadow('.tb[data-mode="element"]');
+  check((await $.shadow('.lcoach'))?.visible, 'first-use how-to card shown');
+  await $.clickShadowText('.lcoach .btn', '알겠어요');
+  check(!(await $.shadow('.lcoach')), 'card dismissed');
+  check((await $.shadow('.lhint'))?.visible, 'hint "바꿀 요소를 클릭하세요" while nothing is selected');
+  check(await page.evaluate(() => localStorage.getItem('redpen:layout-tip')) === '1', 'card shown only once');
   const c0 = await cards();
   await page.mouse.click(c0[0].x + 60, c0[0].y + c0[0].h - 40);
   await sleep(250);
   check((await $.shadow('.lbar'))?.visible, 'layout bar shown');
   check((await $.shadow('.lh[data-h="se"]'))?.visible, 'resize handles shown');
+  check(!(await $.shadow('.lhint'))?.visible, 'hint hidden once something is selected');
+  check(await page.evaluate(() => import('/__redpen/app/config.js').then((m) => !!m.default.build)), 'page knows which tool build it runs');
 
   title('drag moves the element (live preview) and records a layout mark');
   await drag(c0[0].x + 80, c0[0].y + c0[0].h - 60, c0[0].x + 110, c0[0].y + c0[0].h - 10);

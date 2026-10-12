@@ -20,7 +20,7 @@ export function mountToolbar(A) {
   };
   const modes = [
     modeButton('text', 'text', '텍스트', '텍스트 (Alt+1)\n드래그로 선택 → 삭제 D · 수정 R · 코멘트 C'),
-    modeButton('element', 'element', '요소·배치', '요소·배치 (Alt+2)\n클릭해 선택 → 끌어서 이동·순서 바꾸기, 모서리로 크기\n글자·간격·여백 조절 · D 삭제 · C 코멘트'),
+    modeButton('element', 'layout', '레이아웃', '레이아웃 (Alt+2)\n요소를 클릭해 선택 → 끌어서 이동·순서 바꾸기, 모서리로 크기\n글자·간격·여백 조절 · D 삭제 · C 코멘트'),
     modeButton('region', 'region', '영역', '영역 (Alt+3)\n빈 곳에 범위를 그려 코멘트 (예: 여기에 그림 추가)'),
   ];
   const slideNo = h('span', { class: 'slide-no' }, '–');

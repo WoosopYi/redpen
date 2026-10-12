@@ -10,7 +10,7 @@ import * as A from './actions.js';
 import { layoutSummary } from './summary.js';
 
 /*
- * Layout editing ("요소·배치" mode). Select an element, then
+ * Layout editing ("레이아웃" mode). Select an element, then
  *   drag            → move it (snaps to slide edges/center and other elements' lines)
  *   drop on sibling → change its order among siblings
  *   corner handles  → resize proportionally · side handles → change the box width/height
@@ -1054,7 +1054,56 @@ function renderMarks() {
   }
 }
 
+const TIP_KEY = 'redpen:layout-tip';
+
+/** First time in layout mode: a short how-to card above the toolbar. */
+function coach() {
+  if (N.coach || localStorage.getItem(TIP_KEY)) return;
+  N.coach = h('div', { class: 'onboard lcoach' },
+    h('h4', null, '📐 레이아웃 모드'),
+    h('ul', null,
+      h('li', null, '바꿀 요소(카드·이미지·글 상자)를 ', h('b', null, '클릭'), ' → 끌어서 옮기기'),
+      h('li', null, '다른 칸 위에 놓으면 ', h('b', null, '순서 바꾸기')),
+      h('li', null, '모서리 손잡이로 ', h('b', null, '크기'), ', 막대에서 글자·간격·여백'),
+      h('li', null, h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'C'), ' 코멘트 · ', h('kbd', null, 'Esc'), ' 선택 해제')),
+    h('button', {
+      class: 'btn',
+      onClick: () => {
+        localStorage.setItem(TIP_KEY, '1');
+        N.coach.remove();
+        N.coach = null;
+      },
+    }, '알겠어요'));
+  ui.app.append(N.coach);
+}
+
+/** Keep the hint pill / coach card just above the toolbar (it can be dragged anywhere). */
+function placeAboveBar(el) {
+  const bar = ui.shadow.querySelector('.bar');
+  if (!bar) return;
+  const r = bar.getBoundingClientRect();
+  const w = el.offsetWidth;
+  const hh = el.offsetHeight;
+  const top = r.top - hh - 10 >= 8 ? r.top - hh - 10 : r.bottom + 10;
+  el.style.left = `${clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8)}px`;
+  el.style.top = `${top}px`;
+}
+
+function renderHint() {
+  const on = S.mode === 'element' && !S.paused;
+  if (on) coach();
+  if (!on && N.coach) N.coach.style.display = 'none';
+  else if (N.coach) {
+    N.coach.style.display = '';
+    placeAboveBar(N.coach);
+  }
+  const show = on && !sel && !drag && !N.coach && !popoverOpen();
+  N.hint.style.display = show ? '' : 'none';
+  if (show) placeAboveBar(N.hint);
+}
+
 function render() {
+  renderHint();
   if (sel) {
     const slide = slideOf(sel.el);
     if (!sel.el.isConnected || S.mode !== 'element' || S.paused || (slide && slide !== document.body && !slideVisible(slide))) deselect();
@@ -1112,8 +1161,9 @@ export function initLayout() {
   N.svg.setAttribute('class', 'larrows');
   N.svg.innerHTML = '<defs><marker id="rp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8e4ec6"/></marker></defs>';
   N.bar = h('div', { class: 'lbar', style: { display: 'none' } });
+  N.hint = h('div', { class: 'lhint', style: { display: 'none' } }, icon('layout', 14), '바꿀 요소를 클릭하세요 · 끌어서 이동 · 모서리로 크기');
   ui.layer.append(N.svg, N.box, N.out, N.gx, N.gy, N.ins, ...N.handles, N.size);
-  ui.app.append(N.bar);
+  ui.app.append(N.bar, N.hint);
   registerRenderer(render);
   let t = 0;
   addEventListener('resize', () => {

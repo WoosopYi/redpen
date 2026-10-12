@@ -11,6 +11,27 @@ import { itemSummary } from './client/summary.js';
 const CLIENT_DIR = fileURLToPath(new URL('./client/', import.meta.url));
 export const VERSION = readJSON(fileURLToPath(new URL('../package.json', import.meta.url)), {})?.version || '0.0.0';
 
+/** Fingerprint of the browser code being served (names, sizes, mtimes) — open tabs compare it to notice updates. */
+export function clientBuild() {
+  const parts = [VERSION];
+  const walk = (dir) => {
+    for (const name of fs.readdirSync(dir).sort()) {
+      const file = path.join(dir, name);
+      const st = fs.statSync(file);
+      if (st.isDirectory()) walk(file);
+      else if (name.endsWith('.js')) parts.push(`${path.relative(CLIENT_DIR, file)}:${st.size}:${Math.floor(st.mtimeMs)}`);
+    }
+  };
+  try {
+    walk(CLIENT_DIR);
+  } catch {
+    /* unreadable: fall back to the version */
+  }
+  let h = 0;
+  for (const ch of parts.join('|')) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0;
+  return `${VERSION}-${(h >>> 0).toString(36)}`;
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.htm': 'text/html; charset=utf-8',
@@ -197,7 +218,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
 
   function computeState() {
     const rounds = store.rounds();
-    return { rounds: rounds.map(summarize), agent: agentStatus(rounds) };
+    return { rounds: rounds.map(summarize), agent: agentStatus(rounds), build: clientBuild() };
   }
 
   function pushState(force = false) {
@@ -244,6 +265,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
         deckPath: store.deckPath,
         slideSelector: store.readSettings().slideSelector || null,
         version: VERSION,
+        build: clientBuild(),
       };
       return send(res, 200, `export default ${JSON.stringify(cfg)};\n`, { 'Content-Type': MIME['.js'] });
     }
