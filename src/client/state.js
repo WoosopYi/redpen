@@ -160,7 +160,7 @@ export function clearHistory() {
 // ---- ordering: slide → slide-level first → top-to-bottom → left-to-right -------
 
 const slideKey = (it) => (Number.isInteger(it.slide?.index) && !it.slide.single ? it.slide.index : -1);
-const targetKey = (it) => (it.target === 'slide' ? 0 : 1);
+const targetKey = (it) => (it.target === 'slide' || it.target === 'sketch' ? 0 : 1);
 
 export function ordered(items = S.items) {
   return [...items].sort((a, b) => (slideKey(a) - slideKey(b))
@@ -176,6 +176,6 @@ export function numbering() {
   return m;
 }
 
-export const TYPE_LABEL = { delete: '삭제', replace: '수정', comment: '코멘트' };
-export const TYPE_ICON = { delete: 'trash', replace: 'edit', comment: 'comment' };
-export const TARGET_LABEL = { text: '텍스트', element: '요소', region: '영역', slide: '슬라이드' };
+export const TYPE_LABEL = { delete: '삭제', replace: '수정', comment: '코멘트', layout: '레이아웃' };
+export const TYPE_ICON = { delete: 'trash', replace: 'edit', comment: 'comment', layout: 'layout' };
+export const TARGET_LABEL = { text: '텍스트', element: '요소', region: '영역', slide: '슬라이드', sketch: '스케치' };

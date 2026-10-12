@@ -20,13 +20,13 @@ export function mountToolbar(A) {
   };
   const modes = [
     modeButton('text', 'text', '텍스트', '텍스트 (Alt+1)\n드래그로 선택 → 삭제 D · 수정 R · 코멘트 C'),
-    modeButton('element', 'element', '요소', '요소 (Alt+2)\n이미지·도형·박스를 클릭해 삭제하거나 코멘트'),
+    modeButton('element', 'element', '요소·배치', '요소·배치 (Alt+2)\n클릭해 선택 → 끌어서 이동·순서 바꾸기, 모서리로 크기\n글자·간격·여백 조절 · D 삭제 · C 코멘트'),
     modeButton('region', 'region', '영역', '영역 (Alt+3)\n빈 곳에 범위를 그려 코멘트 (예: 여기에 그림 추가)'),
   ];
   const slideNo = h('span', { class: 'slide-no' }, '–');
   const slideBtn = h('button', {
     class: 'tb hide-paused',
-    'data-tip': '지금 보이는 슬라이드에\n코멘트 달기 · 삭제 표시',
+    'data-tip': '지금 보이는 슬라이드에\n코멘트 · 새 배치 스케치 · 순서 옮기기 · 삭제',
     onClick: (e) => A.openSlideMenu(e.currentTarget),
   }, icon('slide', 15), slideNo, icon('chevron', 12));
   const listCount = h('span', { class: 'count zero' }, '0');
@@ -134,7 +134,7 @@ export function mountToolbar(A) {
 
   function setSlide(index, total, title) {
     slideNo.textContent = total > 1 && index >= 0 ? `${index + 1} / ${total}` : '페이지';
-    slideBtn.dataset.tip = `${total > 1 && index >= 0 ? `슬라이드 ${index + 1}${title ? ` · ${title}` : ''}\n` : ''}코멘트 달기 · 삭제 표시`;
+    slideBtn.dataset.tip = `${total > 1 && index >= 0 ? `슬라이드 ${index + 1}${title ? ` · ${title}` : ''}\n` : ''}코멘트 · 새 배치 스케치 · 순서 옮기기 · 삭제`;
   }
 
   return { update, setSlide, el: bar };

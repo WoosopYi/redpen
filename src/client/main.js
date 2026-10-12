@@ -11,6 +11,8 @@ import { popoverDirty } from './ui/popover.js';
 import { toast, banner, hideBanner, statusBanner, modalOpen } from './ui/feedback.js';
 import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, goToSlide, slideTitle } from './slides.js';
 import { h } from './util.js';
+import * as L from './layout.js';
+import { initSketch, openSketch, sketchOpen } from './sketch.js';
 
 // Capture-phase listeners go in first, before the deck's deferred scripts register theirs.
 install();
@@ -83,7 +85,8 @@ function onboard() {
     h('h4', null, '✒️ 화면에 바로 표시하세요'),
     h('ul', null,
       h('li', null, '텍스트를 드래그 → ', h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'R'), ' 수정 · ', h('kbd', null, 'C'), ' 코멘트'),
-      h('li', null, '요소 · 영역 모드로 이미지나 빈 공간에도 표시'),
+      h('li', null, h('b', null, '요소·배치'), ' — 클릭해서 끌면 이동, 모서리로 크기, 글자·간격 조절'),
+      h('li', null, '영역 모드로 빈 공간에 지시, 슬라이드 메뉴로 새 배치 스케치'),
       h('li', null, '다 했으면 ', h('b', null, 'AI에게 보내기'), ' → AI 세션이 이어서 반영')),
     h('button', {
       class: 'btn',
@@ -108,12 +111,19 @@ async function init() {
     onFocus: () => A.onFocusChange(),
     isSlide: (el) => getSlides().set.has(el),
   });
+  L.initLayout();
+  initSketch();
+  Object.assign(A.hooks, { openLayout: L.openItem, openSketch, sketchOpen, deselect: L.deselect });
   setReanchor(() => A.anchorAll());
   setModeStyle(S.mode, S.paused);
 
   subscribe((kind) => {
     toolbar.update();
     panel.update(kind);
+    if (kind === 'items' || kind === 'all' || kind === 'mode') {
+      L.recompute(); // layout previews follow the marks (and disappear while paused)
+      L.refresh();
+    }
     if (kind === 'focus' || kind === 'deck') scheduleRender();
     else refreshHighlights();
   });

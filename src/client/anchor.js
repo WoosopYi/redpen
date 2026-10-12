@@ -88,6 +88,22 @@ function occurrences(text, needle, at) {
 
 const elOf = (node) => (node && node.nodeType === 1 ? node : node?.parentElement) || null;
 
+/** Element text with a space between separate text pieces ("잘하는 일" + "초안 작성" → "잘하는 일 초안 작성"). */
+export function textOf(el, max = 160) {
+  const parts = [];
+  let len = 0;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.nodeType === 1 ? (SKIP.has(n.localName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP) : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let n = walker.nextNode(); n && len < max * 2; n = walker.nextNode()) {
+    const t = n.data.trim();
+    if (!t) continue;
+    parts.push(t);
+    len += t.length + 1;
+  }
+  return norm(parts.join(' ')).slice(0, max);
+}
+
 /** Human/AI-readable CSS path, e.g. `div#deck > section.slide:nth-of-type(5) > ul > li:nth-of-type(2)`. */
 export function cssPath(el) {
   const parts = [];
@@ -290,7 +306,7 @@ export function describeElement(el) {
         classes: [...el.classList].filter((c) => !STATE_CLASS.test(c)).slice(0, 6),
         attrs,
         startTag: startTag(el),
-        text: norm(el.textContent).slice(0, 160),
+        text: textOf(el),
         path: structPath(el, slideEl || document.body),
         selector: cssPath(el),
         box: relBox(rect, slideEl),
@@ -309,8 +325,8 @@ function elementScore(c, E) {
     const v = c.getAttribute(k) || (k === 'src' ? c.getAttribute('data-lazy-src') || c.getAttribute('data-src') : null);
     if (v === a[k]) s += 4;
   }
-  const t = norm(c.textContent).slice(0, 160);
-  if (E.text && t === E.text) s += 3;
+  const t = textOf(c);
+  if (E.text && (t === E.text || norm(c.textContent).slice(0, 160) === E.text)) s += 3;
   else if (E.text && t && t.startsWith(E.text.slice(0, 24))) s += 1;
   s += Math.min(2, (E.classes || []).filter((x) => c.classList.contains(x)).length) * 0.5;
   return s;
@@ -356,8 +372,8 @@ export function whereLabel({ x, y, w, h }) {
 
 const MEDIA = /^(img|video|svg|canvas|table|picture|iframe)$/;
 
-export function describeRegion(slideEl, rect) {
-  const box = relBox(rect, slideEl);
+/** Elements (text or media) lying mostly inside `rect` on a slide — what currently occupies that area. */
+export function elementsIn(slideEl, rect, limit = 5) {
   const found = [];
   for (const el of slideEl.querySelectorAll('*')) {
     if (el.closest('svg') && el.localName !== 'svg') continue;
@@ -373,14 +389,15 @@ export function describeRegion(slideEl, rect) {
   }
   const kept = found.filter((f) => !found.some((g) => g !== f && g.el.contains(f.el) && MEDIA.test(g.el.localName)));
   kept.sort((a, b) => b.area - a.area);
+  return kept.slice(0, limit).map(({ el }) => ({ tag: el.localName, text: textOf(el, 60), selector: cssPath(el) }));
+}
+
+export function describeRegion(slideEl, rect) {
+  const box = relBox(rect, slideEl);
   return {
     target: 'region',
     slide: slideMeta(slideEl),
-    region: {
-      ...box,
-      where: whereLabel(box),
-      overlaps: kept.slice(0, 5).map(({ el }) => ({ tag: el.localName, text: norm(el.textContent).slice(0, 60), selector: cssPath(el) })),
-    },
+    region: { ...box, where: whereLabel(box), overlaps: elementsIn(slideEl, rect) },
     pos: box,
   };
 }

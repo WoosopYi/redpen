@@ -6,6 +6,7 @@ import { Store } from './store.mjs';
 import { loadSources, annotate } from './locate.mjs';
 import { renderRounds } from './prompt.mjs';
 import { readJSON } from './util.mjs';
+import { itemSummary } from './client/summary.js';
 
 const CLIENT_DIR = fileURLToPath(new URL('./client/', import.meta.url));
 export const VERSION = readJSON(fileURLToPath(new URL('../package.json', import.meta.url)), {})?.version || '0.0.0';
@@ -47,8 +48,8 @@ const MIME = {
 const TEMP_FILE = /(^|[\\/])(\.#|#)|~$|\.sw[px]$|\.tmp$|(^|[\\/])4913$/;
 const CLIENT_TAG = '<script type="module" src="/__redpen/app/main.js"></script>';
 
-const TYPES = new Set(['delete', 'replace', 'comment']);
-const TARGETS = new Set(['text', 'element', 'region', 'slide']);
+const TYPES = new Set(['delete', 'replace', 'comment', 'layout']);
+const TARGETS = new Set(['text', 'element', 'region', 'slide', 'sketch']);
 
 const clip = (s, n) => {
   s = String(s ?? '').replace(/\s+/g, ' ').trim();
@@ -160,7 +161,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
   }
 
   function summarize(r) {
-    const counts = { delete: 0, replace: 0, comment: 0 };
+    const counts = { delete: 0, replace: 0, comment: 0, layout: 0 };
     for (const it of r.items || []) counts[it.type] = (counts[it.type] || 0) + 1;
     return {
       round: r.round,
@@ -175,9 +176,10 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
         type: it.type,
         target: it.target,
         slide: it.slide && !it.slide.single ? it.slide.index + 1 : null,
-        text: it.text?.exact ? clip(it.text.exact, 70)
-          : it.element ? `<${it.element.tag}>${it.element.text ? ` ${clip(it.element.text, 40)}` : ''}`
-            : '',
+        text: it.type === 'layout' ? clip(itemSummary(it), 70)
+          : it.text?.exact ? clip(it.text.exact, 70)
+            : it.element ? `<${it.element.tag}>${it.element.text ? ` ${clip(it.element.text, 40)}` : ''}`
+              : '',
         replacement: it.type === 'replace' ? clip(it.replacement, 70) : undefined,
         comment: it.comment ? clip(it.comment, 90) : undefined,
       })),

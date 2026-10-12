@@ -2,6 +2,7 @@ import { ui, activeInUI } from './root.js';
 import { S, ordered, numbering, saveSoon, emit, TYPE_LABEL, TYPE_ICON, TARGET_LABEL } from '../state.js';
 import { h, trunc, timeLabel, MOD } from '../util.js';
 import { icon } from '../icons.js';
+import { itemSummary } from '../summary.js';
 
 /** Side panel: the marks being written (grouped by slide) and the history of sent rounds. */
 export function mountPanel(A) {
@@ -56,6 +57,10 @@ export function mountPanel(A) {
   // ---- draft list ----
   function rowText(it) {
     const q = (s, n) => h('span', { class: 'q' }, `“${trunc(s, n)}”`);
+    if (it.type === 'layout') {
+      const what = it.target === 'element' ? h('span', { class: 'q' }, ` <${it.element?.tag}>${it.element?.text ? ` ${trunc(it.element.text, 24)}` : ''}`) : null;
+      return [h('span', { class: 'cm' }, itemSummary(it)), what, it.comment && h('span', { class: 'cm' }, ` — ${trunc(it.comment, 80)}`)];
+    }
     if (it.target === 'text') {
       if (it.type === 'delete') return [h('s', null, trunc(it.text.exact, 140)), it.comment && h('span', { class: 'cm' }, ` — ${trunc(it.comment, 80)}`)];
       if (it.type === 'replace') return [h('s', null, trunc(it.text.exact, 60)), h('span', { class: 'to' }, '→'), trunc(it.replacement, 100) || '(빈칸)'];
@@ -78,9 +83,9 @@ export function mountPanel(A) {
         h('h4', null, '고칠 곳을 화면에 바로 표시하세요'),
         h('ul', null,
           h('li', null, h('b', null, '텍스트'), ' — 드래그하면 메뉴가 떠요. ', h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'R'), ' 수정 · ', h('kbd', null, 'C'), ' 코멘트'),
-          h('li', null, h('b', null, '요소'), ' — 이미지·박스를 클릭해 삭제하거나 코멘트'),
+          h('li', null, h('b', null, '요소·배치'), ' — 클릭해 선택 → 끌어서 이동·순서 바꾸기, 모서리로 크기, 글자·간격·여백 조절'),
           h('li', null, h('b', null, '영역'), ' — 빈 곳에 범위를 그려 "여기에 그림 추가" 같은 지시'),
-          h('li', null, h('b', null, '슬라이드'), ' — 툴바의 슬라이드 메뉴로 통째 코멘트·삭제'),
+          h('li', null, h('b', null, '슬라이드'), ' — 툴바의 슬라이드 메뉴로 코멘트·삭제·순서 옮기기, 새 배치 스케치'),
           h('li', null, '다 표시했으면 ', h('b', null, 'AI에게 보내기'), ` (${MOD}+Enter)`)),
       ));
       return;

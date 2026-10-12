@@ -84,3 +84,63 @@ test('formatSource / where helpers', () => {
   assert.equal(where({ x: 0.4, y: 0.4, w: 0.2, h: 0.2 }), '가운데');
   assert.equal(where({ x: 0.4, y: 0.05, w: 0.2, h: 0.1 }), '위쪽 가운데');
 });
+
+test('layout marks become before → after instructions with their layout context', () => {
+  const r = {
+    round: 4,
+    deck: { path: '/tmp/deck/index.html', slideSelector: '.slide', slideCount: 6 },
+    items: [
+      {
+        n: 1, type: 'layout', target: 'element', slide: { index: 2, title: '생성형 AI란' },
+        element: { tag: 'div', startTag: '<div class="card">', text: '조심할 일 최신 정보', selector: 'div.cols > div.card:nth-of-type(2)' },
+        layout: {
+          from: { x: 0.51, y: 0.37, w: 0.43, h: 0.48 },
+          to: { x: 0.06, y: 0.37, w: 0.473, h: 0.528 },
+          fit: 'scale',
+          snaps: ['슬라이드 가로 가운데에 맞춤'],
+          reorder: { from: 1, to: 0, count: 2, before: '「잘하는 일」', after: null },
+          font: { from: 24, to: 29 },
+          gap: { from: 40, to: 50 },
+          padding: { from: [32, 32, 32, 32], to: [24, 24, 24, 24] },
+          direction: { from: 'row', to: 'column' },
+          columns: { from: 2, to: 3 },
+          ctx: { display: 'block', parent: { tag: 'div', selector: 'div#stage > section.slide:nth-of-type(3) > div.cols', display: 'grid', columns: 2, count: 2 }, index: 1 },
+        },
+        source: { status: 'exact', total: 1, hits: [{ file: 'index.html', line: 63, endLine: 63 }] },
+      },
+      {
+        n: 2, type: 'layout', target: 'element', slide: { index: 2, title: '생성형 AI란' },
+        element: { tag: 'h2', startTag: '<h2>', text: '제목' },
+        layout: { from: { x: 0.1, y: 0.1, w: 0.4, h: 0.1 }, to: { x: 0.3, y: 0.1, w: 0.6, h: 0.12 }, fit: 'box', snaps: [], ctx: {} },
+      },
+      {
+        n: 3, type: 'layout', target: 'sketch', slide: { index: 2, title: '생성형 AI란' }, comment: '사진을 크게',
+        sketch: { boxes: [
+          { x: 0.05, y: 0.3, w: 0.45, h: 0.6, label: '큰 사진', where: '왼쪽 가운데', inside: [{ tag: 'div', text: '잘하는 일 초안 작성, 요약, 번역, 아이디어 확장, 형식 바꾸기' }] },
+          { x: 0.55, y: 0.3, w: 0.4, h: 0.6, label: '', where: '오른쪽 가운데', inside: [] },
+        ] },
+      },
+      { n: 4, type: 'layout', target: 'slide', slide: { index: 4, title: '정리', startTag: '<section class="slide">' }, move: { from: 4, to: 0, total: 6, before: '표지', after: null } },
+    ],
+  };
+  const md = renderRounds([r], { channel: 'pending' });
+  assert.match(md, /요청: 📐 레이아웃 4/);
+  assert.match(md, /5\. 📐 \*\*레이아웃\*\*/);
+  assert.match(md, /### #1 📐 레이아웃 변경 · 요소 `<div>`/);
+  assert.match(md, /- 지금: 슬라이드 오른쪽 가운데 \(가로 51–94%, 세로 37–85%\) · `section\.slide:nth-of-type\(3\) > div\.cols` \(grid · 2열\) 안의 2번째 칸 \(전체 2칸\)/);
+  assert.match(md, /- 순서: 2번째 → 1번째 — 「잘하는 일」 앞으로/);
+  assert.doesNotMatch(md.split('### #2')[0], /- 위치: 슬라이드 .*로 옮기기/, 'with a new order, the position follows from the order');
+  assert.match(md, /- 크기: 110%로 키우기 — 비율 유지 \(너비 43% → 47%\)/);
+  assert.match(md, /- 맞춤: 슬라이드 가로 가운데에 맞춤/);
+  assert.match(md, /- 글자 크기: 24px → 29px \(\+21%\)/);
+  assert.match(md, /간격\(gap\): 40px → 50px/);
+  assert.match(md, /안쪽 여백\(padding\): 32px → 24px/);
+  assert.match(md, /배치: 가로로 늘어놓기\(row\) → 세로로 쌓기\(column\)/);
+  assert.match(md, /열 수: 2열 → 3열/);
+  assert.match(md, /- 위치: DOM `div\.cols > div\.card:nth-of-type\(2\)` · 소스: `index\.html:63`/);
+  assert.match(md, /### #2[\s\S]*- 위치: 슬라이드 .*로 옮기기[\s\S]*- 상자 크기: 너비 40% → 60%, 높이 10% → 12%/);
+  assert.match(md, /### #3 📐 새 배치 스케치[\s\S]*1\. "큰 사진" — 왼쪽 가운데 \(가로 5–50%, 세로 30–90%\) · 지금 그 자리: `<div>` "잘하는 일 초안 작성, 요약, 번역, 아이디어 확장,…"/);
+  assert.match(md, /2\. \(이름 없는 칸\) — 오른쪽 가운데 .* · 지금 그 자리: 빈 공간/);
+  assert.match(md, /- \*\*메모:\*\* 사진을 크게/);
+  assert.match(md, /### #4 📐 슬라이드 순서 옮기기\n- 이 슬라이드를 \*\*1번째\*\*로 옮기세요 \(지금 5번째, 전체 6장 — 지금의 「표지」 앞\)\./);
+});

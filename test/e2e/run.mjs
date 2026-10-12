@@ -230,7 +230,7 @@ async function basicDeck(browser) {
   await sleep(150);
   check(!(await $.shadow('.pop')), 'Esc closes the popover');
 
-  title('element mode: click a card → delete');
+  title('element mode: click a card → D deletes it');
   await $.clickShadow('.tb[data-mode="element"]');
   const cardRect = await page.evaluate(() => {
     const c = [...document.querySelectorAll('.slide.active .card')][1].getBoundingClientRect();
@@ -241,7 +241,7 @@ async function basicDeck(browser) {
   check((await $.shadow('.hover-box'))?.visible, 'hover outline follows the pointer');
   await page.mouse.click(cardRect.x, cardRect.y);
   await sleep(200);
-  check((await $.shadow('.pop .menu'))?.visible, 'element action menu opens');
+  check((await $.shadow('.lbar'))?.visible, 'element is selected with the layout bar');
   check(await $.activeSlide() === 2, 'clicking in element mode did not advance the slide');
   await page.keyboard.press('KeyD');
   await sleep(200);
@@ -531,6 +531,164 @@ async function edgeDeck(browser) {
   await page.close();
 }
 
+// ---- scenario 4: layout editing (move · resize · order · styles · sketch · slide move) --------
+
+async function layoutDeck(browser) {
+  const deck = copyExample('basic').replace('/basic/', '/basic/'); // fresh copy per scenario
+  const dir = path.join(OUT, 'layout');
+  fs.cpSync(path.dirname(deck), dir, { recursive: true, filter: (p) => !p.includes('.redpen') });
+  const file = path.join(dir, 'index.html');
+  const out = cli('open', file, '--no-open', '--port', '0');
+  const url = /(http:\/\/localhost:\d+\/\S+)/.exec(out)[1];
+  console.log(`\n=== layout: ${url}`);
+  const { page, errors } = await openPage(browser, `${url}#3`);
+  const $ = helpers(page);
+  const items = () => page.evaluate(() => window.__redpen.S.items.map((i) => ({ type: i.type, target: i.target, L: i.layout, sketch: i.sketch, move: i.move })));
+  const cards = () => page.evaluate(() => [...document.querySelectorAll('.slide.active .card')].map((c) => {
+    const r = c.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height, translate: c.style.translate, scale: c.style.scale, fs: parseFloat(getComputedStyle(c).fontSize) };
+  }));
+  const gapNow = () => page.evaluate(() => getComputedStyle(document.querySelector('.slide.active .cols')).columnGap);
+  const drag = async (x0, y0, x1, y1) => {
+    await page.mouse.move(x0, y0);
+    await page.mouse.down();
+    await page.mouse.move((x0 + x1) / 2, (y0 + y1) / 2, { steps: 5 });
+    await page.mouse.move(x1, y1, { steps: 5 });
+    await page.mouse.up();
+    await sleep(300);
+  };
+  const stepper = (n, plus) => page.evaluate((n, plus) => {
+    const st = [...document.getElementById('__redpen-host').shadowRoot.querySelectorAll('.lbar .lstep')][n];
+    const b = st.querySelectorAll('button')[plus ? 1 : 0].getBoundingClientRect();
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2, off: st.classList.contains('off') };
+  }, n, plus);
+
+  title('요소·배치 mode: click selects with handles and a layout bar');
+  await $.clickShadow('.tb[data-mode="element"]');
+  const c0 = await cards();
+  await page.mouse.click(c0[0].x + 60, c0[0].y + c0[0].h - 40);
+  await sleep(250);
+  check((await $.shadow('.lbar'))?.visible, 'layout bar shown');
+  check((await $.shadow('.lh[data-h="se"]'))?.visible, 'resize handles shown');
+
+  title('drag moves the element (live preview) and records a layout mark');
+  await drag(c0[0].x + 80, c0[0].y + c0[0].h - 60, c0[0].x + 110, c0[0].y + c0[0].h - 10);
+  let list = await items();
+  let c = await cards();
+  check(list.length === 1 && list[0].type === 'layout' && list[0].L.to, 'layout mark with a target box', list);
+  check(c[0].translate && Math.abs(c[0].y - c0[0].y - 50) < 6, 'card previewed ~50px lower', c[0]);
+
+  title('corner handle resizes proportionally; + makes the text bigger');
+  const se = await $.shadow('.lh[data-h="se"]');
+  await drag(se.x, se.y, se.x + 60, se.y + 40);
+  c = await cards();
+  list = await items();
+  check(Number(c[0].scale) > 1.05 && list[0].L.fit === 'scale', 'scaled preview', { scale: c[0].scale, fit: list[0].L.fit });
+  let b = await stepper(0, true);
+  await page.mouse.click(b.x, b.y);
+  await sleep(150);
+  await page.mouse.click(b.x, b.y);
+  await sleep(250);
+  list = await items();
+  check(list[0].L.font && list[0].L.font.to > list[0].L.font.from, 'font size mark', list[0].L.font);
+  check((await cards())[0].fs > c0[0].fs, 'font previewed bigger');
+  await page.keyboard.press('Escape');
+
+  title('dropping a card on the front half of its sibling changes the order');
+  c = await cards();
+  await drag(c[1].x + 120, c[1].y + 260, c0[0].x + 70, c0[0].y + 200);
+  list = await items();
+  const reo = list.find((i) => i.L?.reorder);
+  check(reo && reo.L.reorder.from === 1 && reo.L.reorder.to === 0, 'reorder 2nd → 1st', reo?.L.reorder);
+  check(Math.abs((await cards())[1].x - c0[0].x) < 8, 'second card previewed in the first slot');
+
+  title('parent grid: wider gap; side handle changes only the box');
+  await $.clickShadowText('.lbar .lb', '상위 요소');
+  b = await stepper(1, true);
+  check(!b.off, 'gap stepper enabled for the grid');
+  await page.mouse.click(b.x, b.y);
+  await sleep(250);
+  check(await gapNow() === '50px', 'gap 40px → 50px previewed', await gapNow());
+  await page.keyboard.press('Escape');
+  c = await cards();
+  await page.mouse.click(c[1].x + 30, c[1].y + 30); // a click picks the card (box-like), not its heading
+  await sleep(200);
+  const e = await $.shadow('.lh[data-h="e"]');
+  await drag(e.x, e.y, e.x - 80, e.y);
+  list = await items();
+  const boxed = list.find((i) => i.L?.fit === 'box');
+  check(boxed && boxed.L.to.w < boxed.L.from.w && boxed.L.reorder, 'box-width change on the reordered card keeps its order', boxed?.L);
+  check(await page.evaluate(() => [...document.getElementById('__redpen-host').shadowRoot.querySelectorAll('.lout.fixed')]
+    .some((o) => o.style.display !== 'none' && o.getBoundingClientRect().width > 0)), 'target box outline drawn');
+  await page.keyboard.press('Escape');
+
+  title('pause shows the original deck; resume brings the previews back; undo works');
+  await $.clickShadow('.bar > .tb:last-child');
+  c = await cards();
+  check(!c[0].translate && !c[1].translate && await gapNow() === '40px', 'paused: deck untouched', { c, gap: await gapNow() });
+  await $.clickShadow('.bar > .tb:last-child');
+  check((await cards())[0].translate && await gapNow() === '50px', 'resumed: previews back');
+  const before = (await items()).map((i) => [i.target, i.L?.fit, !!i.L?.to, !!i.L?.reorder, !!i.L?.gap, !!i.L?.font]);
+  await page.mouse.click(5, 5);
+  await $.pressMod('KeyZ');
+  const after = (await items()).map((i) => [i.target, i.L?.fit, !!i.L?.to, !!i.L?.reorder, !!i.L?.gap, !!i.L?.font]);
+  check(after.every((i) => i[1] !== 'box') && after.length === before.length && after.some((i) => i[3]), 'undo reverts the box width but keeps the new order', { before, after });
+
+  title('slide menu: new layout sketch and moving the slide');
+  await $.clickShadowText('.tb', '텍스트');
+  await $.clickShadow('.bar .tb.hide-paused');
+  await $.clickShadowText('.pop .menu button', '새 배치 스케치');
+  const area = await page.evaluate(() => {
+    const r = document.getElementById('__redpen-host').shadowRoot.querySelector('.sk-area').getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+  const box = async (x0, y0, x1, y1, label) => {
+    await drag(area.x + area.w * x0, area.y + area.h * y0, area.x + area.w * x1, area.y + area.h * y1);
+    await page.keyboard.type(label);
+    await page.keyboard.press('Enter');
+  };
+  await box(0.05, 0.3, 0.5, 0.9, '큰 사진');
+  await box(0.55, 0.3, 0.95, 0.9, '설명 세 줄');
+  await page.keyboard.press('ArrowRight'); // must not change slides while sketching
+  check(await $.activeSlide() === 2, 'deck stays on the slide while sketching');
+  await $.shot('layout-sketch');
+  await $.clickShadowText('.skbar .btn', '완료');
+  list = await items();
+  const sk = list.find((i) => i.target === 'sketch');
+  check(sk && sk.sketch.boxes.map((x) => x.label).join('|') === '큰 사진|설명 세 줄', 'sketch with 2 labelled boxes', sk?.sketch);
+  check(await page.evaluate(() => !!document.getElementById('__redpen-host').shadowRoot.querySelector('.skview')), 'sketch drawn on the slide');
+  await $.clickShadow('.bar .tb.hide-paused');
+  await $.clickShadowText('.pop .menu button', '순서 옮기기');
+  await $.clickShadowText('.pop .btn', '맨 앞으로');
+  check((await items()).some((i) => i.target === 'slide' && i.move?.to === 0), 'slide-move mark (→ 1st)');
+  await $.shot('layout-marks');
+
+  title('the AI gets before → after layout instructions');
+  const waiter = startWait(file);
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'waiting', { timeout: 8000 }).catch(() => {});
+  await $.clickShadow('.bar .send');
+  const res = await withTimeout(waiter.done, 10000, 'wait exits');
+  fs.writeFileSync(path.join(OUT, 'layout-round1.md'), res.stdout);
+  console.log(`    📝 ${path.join(OUT, 'layout-round1.md')}`);
+  const md = res.stdout;
+  check(md.includes('📐 **레이아웃**'), 'layout rule included');
+  check(/### #\d+ 📐 레이아웃 변경 · 요소 `<div>`/.test(md), 'element layout section');
+  check(/- 지금: .*\(grid · 2열\) 안의 1번째 칸/.test(md), 'current position with grid context');
+  check(/- 위치: 슬라이드 .*로 옮기기/.test(md), 'move instruction');
+  check(/- 크기: \d+%로 키우기 — 비율 유지/.test(md), 'proportional size instruction');
+  check(/- 글자 크기: 24px → \d+px \(\+\d+%\)/.test(md), 'font size instruction');
+  check(/- 순서: 2번째 → 1번째 — 「잘하는 일/.test(md), 'order instruction');
+  check(/간격\(gap\): 40px → 50px/.test(md), 'gap instruction');
+  check(/### #\d+ 📐 새 배치 스케치[\s\S]*1\. "큰 사진" — 왼쪽/.test(md), 'sketch boxes in reading order');
+  check(/이 슬라이드를 \*\*1번째\*\*로 옮기세요/.test(md), 'slide move instruction');
+  await sleep(500);
+  c = await cards();
+  check(!c[0].translate && !c[1].translate && await gapNow() === '40px', 'previews cleared after sending');
+  cli('done', file, '--reply', '레이아웃 반영 완료');
+  check(errors.length === 0, 'no page errors', errors);
+  await page.close();
+}
+
 // ---- run ---------------------------------------------------------------------------------
 
 if (!CHROME) {
@@ -548,6 +706,7 @@ try {
   await basicDeck(browser);
   await jsDeck(browser);
   await edgeDeck(browser);
+  await layoutDeck(browser);
 } catch (err) {
   failures++;
   console.error(`\n💥 ${err.stack || err}`);

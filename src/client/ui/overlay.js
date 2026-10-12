@@ -3,6 +3,7 @@ import { S, ordered, numbering, TYPE_LABEL } from '../state.js';
 import { slideOf, slideVisible } from '../slides.js';
 import { h, clamp, trunc } from '../util.js';
 import { icon } from '../icons.js';
+import { itemSummary } from '../summary.js';
 
 /*
  * Everything drawn over the deck: numbered pins, element/region/slide boxes, the floating selection
@@ -37,6 +38,12 @@ export function initOverlay(opts) {
 
 export function scheduleRender() {
   if (!raf) raf = requestAnimationFrame(renderFrame);
+}
+
+const renderers = [];
+/** Extra drawing passes (layout selection, sketches) that run every frame after the marks. */
+export function registerRenderer(fn) {
+  renderers.push(fn);
 }
 
 export function setHover(el) {
@@ -189,8 +196,13 @@ const size = (el, r) => {
 };
 
 function cardText(it) {
-  const k = `${TYPE_LABEL[it.type]}${it.target === 'text' ? '' : ` · ${{ element: '요소', region: '영역', slide: '슬라이드' }[it.target]}`}`;
+  const k = `${TYPE_LABEL[it.type]}${it.target === 'text' ? '' : ` · ${{ element: '요소', region: '영역', slide: '슬라이드', sketch: '스케치' }[it.target]}`}`;
   const parts = [h('span', { class: 'k' }, k)];
+  if (it.type === 'layout') {
+    parts.push(itemSummary(it));
+    if (it.comment) parts.push(h('div', { style: { marginTop: '4px' } }, it.comment));
+    return parts;
+  }
   if (it.target === 'text') {
     if (it.type === 'replace') parts.push(h('s', null, trunc(it.text.exact, 80)), ` → ${trunc(it.replacement, 120)}`);
     else if (it.type === 'delete') parts.push(h('s', null, trunc(it.text.exact, 160)));
@@ -242,7 +254,7 @@ function renderFrame() {
     if (g.rects) {
       ax = g.last.right + 1;
       ay = g.last.top + 3;
-    } else if (it.target === 'slide') {
+    } else if (it.target === 'slide' || it.target === 'sketch') {
       ax = g.box.left + 12;
       ay = g.box.top + 34;
     } else {
@@ -281,7 +293,8 @@ function renderFrame() {
 
     // chip: replacement preview, or the slide comment
     const chipText = it.type === 'replace' ? it.replacement
-      : it.target === 'slide' && it.type === 'comment' ? it.comment : null;
+      : it.target === 'slide' && it.type === 'comment' ? it.comment
+        : it.target === 'slide' && it.move ? `${it.move.to + 1}번째로 옮기기` : null;
     const roomy = !it._slide || it._slide === document.body || it._slide.getBoundingClientRect().width > 480;
     if (chipText != null && roomy) {
       if (!n.chip) {
@@ -289,7 +302,7 @@ function renderFrame() {
         ui.layer.append(n.chip);
       }
       n.chip.className = `chip ${t}`;
-      n.chip.replaceChildren(h('span', { class: 'arrow' }, it.type === 'replace' ? '→' : '💬'), trunc(chipText, 60) || '(빈칸)');
+      n.chip.replaceChildren(h('span', { class: 'arrow' }, it.type === 'replace' || it.move ? '→' : '💬'), trunc(chipText, 60) || '(빈칸)');
       n.chip.style.display = '';
       place(n.chip, Math.min(px + 24, innerWidth - 120), py);
     } else if (n.chip) n.chip.style.display = 'none';
@@ -347,4 +360,12 @@ function renderFrame() {
     regionBox.style.display = '';
     size(regionBox, regionRect);
   } else regionBox.style.display = 'none';
+
+  for (const fn of renderers) {
+    try {
+      fn();
+    } catch (err) {
+      console.error('[redpen]', err);
+    }
+  }
 }

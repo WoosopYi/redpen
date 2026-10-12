@@ -6,6 +6,8 @@ import { showSelBar, hideSelBar, selBarRange, selBarLive, setHover, setRegionDra
 import { popoverOpen, popoverDirty, closePopover, shakePopover } from './ui/popover.js';
 import { modalOpen, closeTopModal } from './ui/feedback.js';
 import { isEditable, clamp } from './util.js';
+import * as L from './layout.js';
+import { sketchOpen, sketchKey } from './sketch.js';
 
 /*
  * Window-level (capture phase) input handling. Registered before the deck's own scripts run, so we
@@ -138,6 +140,10 @@ function onKeyDown(e) {
     }
     return;
   }
+  if (sketchOpen()) {
+    if (sketchKey(e)) block(e);
+    return;
+  }
   if (!isOurs(e) && isEditable(origin(e))) return; // the deck's own inputs (also inside its web components)
   const mod = e.metaKey || e.ctrlKey;
 
@@ -154,6 +160,9 @@ function onKeyDown(e) {
       block(e);
       getSelection()?.removeAllRanges();
       hideSelBar();
+    } else if (S.mode === 'element' && L.selected()) {
+      block(e);
+      L.deselect();
     } else if (!S.paused && S.mode !== 'text') {
       block(e);
       A.setMode('text');
@@ -175,7 +184,7 @@ function onKeyDown(e) {
       return;
     }
   }
-  if (popoverOpen() && A.elementKey(e)) {
+  if (S.mode === 'element' && L.onKey(e)) {
     block(e);
     return;
   }
@@ -203,6 +212,10 @@ function onKeyDown(e) {
 
 function onPointerDown(e) {
   if (!active() || isOurs(e)) return;
+  if (sketchOpen()) {
+    block(e); // sketching a slide: the deck underneath stays still
+    return;
+  }
   pointerDown = true;
   swallowClick = false;
   if (popoverOpen()) {
@@ -222,6 +235,7 @@ function onPointerDown(e) {
   }
   if (S.mode === 'element') {
     block(e);
+    if (e.button === 0) L.press(e, pickable(e.target));
     return;
   }
   if (S.mode === 'region') {
@@ -250,7 +264,11 @@ function onPointerMove(e) {
     setRegionDraft(regionRect());
     return;
   }
-  if (S.mode === 'element' && !popoverOpen()) setHover(isOurs(e) ? null : pickable(e.target));
+  if (S.mode === 'element') {
+    L.move(e);
+    const over = !L.dragging() && !popoverOpen() && !isOurs(e) ? pickable(e.target) : null;
+    setHover(over && over !== L.selected() ? over : null); // the selection draws its own outline
+  }
 }
 
 function onPointerUp(e) {
@@ -269,6 +287,11 @@ function onPointerUp(e) {
     return;
   }
   if (isOurs(e)) return;
+  if (S.mode === 'element') {
+    block(e);
+    L.release();
+    return;
+  }
   if (picking()) {
     block(e);
     return;
@@ -288,12 +311,7 @@ function onClick(e) {
     return;
   }
   if (S.mode === 'element') {
-    block(e);
-    const el = pickable(e.target);
-    if (el) {
-      setHover(null);
-      A.openElementActions(el);
-    }
+    block(e); // selection happened on pointerup (see layout.js)
     return;
   }
   if (S.mode === 'region') {

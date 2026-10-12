@@ -5,18 +5,20 @@ import {
   undo as undoItems, redo as redoItems, TYPE_LABEL, TYPE_ICON,
 } from './state.js';
 import { describeText, describeElement, describeRegion, anchorText, anchorElement, slideMeta } from './anchor.js';
-import { getSlides, slideOf, slideVisible, currentSlideIndex, goToSlide as navigate } from './slides.js';
+import { getSlides, slideOf, slideVisible, slideTitle, currentSlideIndex, goToSlide as navigate } from './slides.js';
 import { openPopover, closePopover, popoverOpen, popoverDirty, shakePopover } from './ui/popover.js';
 import { toast, modal, confirmDialog } from './ui/feedback.js';
 import { setPicked, setRegionDraft, scheduleRender, refreshHighlights, hideSelBar } from './ui/overlay.js';
 import { ui, setModeStyle } from './ui/root.js';
-import { h, uid, trunc, sleep, MOD } from './util.js';
+import { h, uid, trunc, sleep, clamp, MOD } from './util.js';
+import { itemSummary } from './summary.js';
 import { icon } from './icons.js';
 
 // ---- modes ----------------------------------------------------------------------
 
 export function setMode(mode) {
   if (editorBusy()) return;
+  hooks.deselect();
   S.paused = false;
   S.mode = mode;
   closePopover();
@@ -30,6 +32,7 @@ export function setMode(mode) {
 
 export function togglePause() {
   if (editorBusy()) return;
+  hooks.deselect();
   S.paused = !S.paused;
   closePopover();
   hideSelBar();
@@ -52,8 +55,15 @@ export function onFocusChange() {
 
 export const notify = (msg, kind = 'info') => toast(msg, { kind, ms: 2200 });
 
+/** Wired up by main.js (layout.js and sketch.js import this module, so they register here instead). */
+export const hooks = { openLayout: null, openSketch: null, sketchOpen: () => false, deselect: () => {} };
+
 /** An open editor holds unsaved text: nudge the user instead of throwing it away. */
 export function editorBusy() {
+  if (hooks.sketchOpen()) {
+    notify('스케치를 먼저 완료하거나 취소해 주세요', 'warn');
+    return true;
+  }
   if (!popoverDirty()) return false;
   shakePopover();
   notify('작성 중인 내용을 먼저 저장(Enter)하거나 취소(Esc)해 주세요', 'warn');
@@ -200,76 +210,36 @@ export function markText(type, range) {
   });
 }
 
-let picked = null; // { d, el } while the element action menu is open
-
-export function openElementActions(el) {
-  if (editorBusy()) return;
+/** Mark an element (or a whole slide) for deletion. A pending layout change on it no longer matters. */
+export function deleteElement(el) {
   const d = describeElement(el);
-  picked = { d, el };
-  setPicked(el);
-  const slide = d.data.slide;
-  const parent = el.parentElement;
-  const canGoUp = !d.isSlide && parent && parent !== document.body && parent !== document.documentElement;
-  const body = h('div', null,
-    h('div', { class: 'pop-head' }, icon(d.isSlide ? 'slide' : 'element', 15),
-      d.isSlide ? `슬라이드 ${slide.index + 1} 전체` : `<${el.localName}> 요소`,
-      !d.isSlide && !slide.single && h('span', { class: 'sub' }, `슬라이드 ${slide.index + 1}`),
-      h('button', { class: 'iconbtn', title: '닫기 (Esc)', onClick: () => closePopover() }, icon('x', 14))),
-    !d.isSlide && h('div', { class: 'el-meta' }, trunc(d.data.element.startTag, 160)),
-    h('div', { class: 'menu' },
-      h('button', { class: 't-delete', onClick: () => elementAction('delete') }, icon('trash', 15),
-        d.isSlide ? '이 슬라이드 삭제 표시' : '이 요소 삭제 표시', h('kbd', { class: 'kbd' }, 'D')),
-      h('button', { class: 't-comment', onClick: () => elementAction('comment') }, icon('comment', 15), '코멘트 달기', h('kbd', { class: 'kbd' }, 'C')),
-      canGoUp && h('button', { onClick: () => elementAction('up') }, icon('up', 15), '상위 요소 선택', h('kbd', { class: 'kbd' }, '↑'))));
-  openPopover(body, el.getBoundingClientRect(), {
-    width: 300,
-    onClose: () => {
-      picked = null;
-      setPicked(null);
-    },
-  });
-}
-
-function elementAction(kind) {
-  if (!picked) return;
-  const { d, el } = picked;
-  if (kind === 'up') {
-    const parent = el.parentElement;
-    if (parent && parent !== document.body) openElementActions(parent);
+  if (d.isSlide) {
+    toggleSlideDelete(el);
     return;
   }
-  const slideData = { target: 'slide', slide: d.data.slide, pos: { x: 0, y: 0 } };
-  if (kind === 'delete') {
-    closePopover();
-    if (d.isSlide) addItem({ type: 'delete', ...slideData }, { _slide: d.slideEl });
-    else addItem({ type: 'delete', ...d.data }, { _el: el, _slide: d.slideEl });
-    toast(`${d.isSlide ? '슬라이드' : '요소'} 삭제 표시했어요 · ${MOD}+Z 되돌리기`, { ms: 1800 });
+  mutate(() => {
+    S.items = S.items.filter((it) => !(it.type === 'layout' && it._el === el));
+    S.items.push(Object.assign({ id: uid(), createdAt: Date.now(), type: 'delete', ...d.data }, { _el: el, _slide: d.slideEl }));
+  });
+  toast(`요소 삭제 표시했어요 · ${MOD}+Z 되돌리기`, { ms: 1800 });
+}
+
+export function commentElement(el, onDone) {
+  if (editorBusy()) return;
+  const d = describeElement(el);
+  if (d.isSlide) {
+    slideComment(el, el.getBoundingClientRect(), onDone);
     return;
   }
   openEditor({
     type: 'comment',
-    title: d.isSlide ? '슬라이드 코멘트' : '요소 코멘트',
-    sub: d.isSlide ? `슬라이드 ${d.data.slide.index + 1}` : `<${el.localName}>`,
-    placeholder: d.isSlide ? '이 슬라이드를 어떻게 바꿀지 적어 주세요\n예: 내용이 많으니 두 장으로 나눠줘'
-      : '이 요소를 어떻게 바꿀지 적어 주세요\n예: 크기를 절반으로 줄이고 오른쪽으로 옮겨줘',
+    title: '요소 코멘트',
+    sub: `<${el.localName}>`,
+    placeholder: '이 요소를 어떻게 바꿀지 적어 주세요\n예: 아이콘을 넣고 테두리는 없애줘',
     anchor: el.getBoundingClientRect(),
-    onSave: (value) => {
-      if (d.isSlide) addItem({ type: 'comment', ...slideData, comment: value }, { _slide: d.slideEl });
-      else addItem({ type: 'comment', ...d.data, comment: value }, { _el: el, _slide: d.slideEl });
-    },
-    onClose: () => setPicked(null),
+    onSave: (value) => addItem({ type: 'comment', ...d.data, comment: value }, { _el: el, _slide: d.slideEl }),
+    onClose: () => onDone?.(),
   });
-  setPicked(el);
-}
-
-/** Keyboard shortcuts while the element menu is open. */
-export function elementKey(e) {
-  if (!picked || e.metaKey || e.ctrlKey || e.altKey) return false;
-  if (e.code === 'KeyD' || e.key === 'Delete' || e.key === 'Backspace') elementAction('delete');
-  else if (e.code === 'KeyC' || e.code === 'KeyM') elementAction('comment');
-  else if (e.key === 'ArrowUp') elementAction('up');
-  else return false;
-  return true;
 }
 
 export function openRegionComment(slideEl, rect) {
@@ -290,6 +260,87 @@ export function openRegionComment(slideEl, rect) {
   });
 }
 
+const slideData = (slideEl) => ({ target: 'slide', slide: slideMeta(slideEl), pos: { x: 0, y: 0 } });
+
+export function slideComment(slideEl, anchor, onDone) {
+  if (editorBusy()) return;
+  const meta = slideMeta(slideEl);
+  openEditor({
+    type: 'comment',
+    title: meta.single ? '페이지 코멘트' : '슬라이드 코멘트',
+    sub: meta.single ? '' : `슬라이드 ${meta.index + 1}`,
+    placeholder: '이 슬라이드 전체에 대한 지시를 적어 주세요\n예: 내용이 많으니 두 장으로 나눠줘',
+    anchor,
+    onSave: (value) => addItem({ type: 'comment', ...slideData(slideEl), comment: value }, { _slide: slideEl }),
+    onClose: () => onDone?.(),
+  });
+}
+
+export function toggleSlideDelete(slideEl) {
+  const meta = slideMeta(slideEl);
+  if (meta.single) return;
+  const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it.slide?.index === meta.index);
+  if (marked) {
+    removeItem(marked.id);
+    return;
+  }
+  addItem({ type: 'delete', ...slideData(slideEl) }, { _slide: slideEl });
+  toast(`슬라이드 ${meta.index + 1} 삭제 표시했어요 · ${MOD}+Z 되돌리기`, { ms: 1800 });
+}
+
+function saveSlideMove(slideEl, meta, to, existing) {
+  if (!Number.isFinite(to)) return;
+  to = clamp(Math.round(to), 0, meta.total - 1);
+  if (to === meta.index) {
+    if (existing) removeItem(existing.id);
+    return;
+  }
+  const others = getSlides().els.filter((e) => e !== slideEl);
+  const move = {
+    from: meta.index,
+    to,
+    total: meta.total,
+    before: others[to] ? slideTitle(others[to]) : null, // the slide that will follow it
+    after: others[to - 1] ? slideTitle(others[to - 1]) : null,
+  };
+  mutate(() => {
+    const data = { type: 'layout', target: 'slide', slide: meta, move, pos: { x: 0, y: 0 } };
+    if (existing && S.items.includes(existing)) Object.assign(existing, data);
+    else S.items.push(Object.assign({ id: uid(), createdAt: Date.now(), ...data }, { _slide: slideEl }));
+  });
+  toast(`슬라이드 ${meta.index + 1}을(를) ${to + 1}번째로 옮기도록 표시했어요`, { ms: 2000 });
+}
+
+export function openSlideMove(slideEl, anchor) {
+  if (editorBusy()) return;
+  const meta = slideMeta(slideEl);
+  if (meta.single) return;
+  const n = meta.total;
+  const existing = S.items.find((it) => it.type === 'layout' && it.target === 'slide' && it.slide?.index === meta.index);
+  const input = h('input', { class: 'ta small num', type: 'number', min: '1', max: String(n), value: String((existing?.move?.to ?? meta.index) + 1) });
+  const go = (to) => {
+    closePopover();
+    saveSlideMove(slideEl, meta, to, existing);
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) go(Number(input.value) - 1);
+  });
+  const quick = (label, to, off) => h('button', { class: 'btn', disabled: off, onClick: () => go(to) }, label);
+  const body = h('div', { class: 't-layout' },
+    h('div', { class: 'pop-head' }, icon('updown', 15), `슬라이드 ${meta.index + 1} 옮기기`, meta.title && h('span', { class: 'sub' }, trunc(meta.title, 22)),
+      h('button', { class: 'iconbtn', title: '닫기 (Esc)', onClick: () => closePopover() }, icon('x', 14))),
+    h('div', { class: 'move-quick' },
+      quick('맨 앞으로', 0, meta.index === 0),
+      quick('한 칸 앞으로', meta.index - 1, meta.index === 0),
+      quick('한 칸 뒤로', meta.index + 1, meta.index === n - 1),
+      quick('맨 뒤로', n - 1, meta.index === n - 1)),
+    h('div', { class: 'label' }, `몇 번째로 옮길까요? (1–${n})`),
+    h('div', { class: 'move-row' }, input, h('button', { class: 'btn primary', onClick: () => go(Number(input.value) - 1) }, '옮기기')),
+    existing && h('button', { class: 'btn ghost danger', style: { marginTop: '8px' }, onClick: () => { closePopover(); removeItem(existing.id); } }, '옮기기 취소'));
+  openPopover(body, anchor, { width: 310 });
+  requestAnimationFrame(() => input.select());
+}
+
 export function openSlideMenu(anchorEl) {
   if (editorBusy()) return;
   const { els, single } = getSlides();
@@ -301,34 +352,23 @@ export function openSlideMenu(anchorEl) {
   }
   const meta = slideMeta(slideEl);
   const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it.slide?.index === meta.index);
-  const slideData = { target: 'slide', slide: meta, pos: { x: 0, y: 0 } };
+  const anchor = anchorEl.getBoundingClientRect();
+  const entry = (cls, ico, label, run) => h('button', { class: cls, onClick: run }, icon(ico, 15), label);
   const body = h('div', null,
     h('div', { class: 'pop-head' }, icon('slide', 15), single ? '이 페이지' : `슬라이드 ${i + 1}`,
       meta.title && h('span', { class: 'sub' }, trunc(meta.title, 26))),
     h('div', { class: 'menu' },
-      h('button', {
-        class: 't-comment',
-        onClick: () => openEditor({
-          type: 'comment',
-          title: single ? '페이지 코멘트' : '슬라이드 코멘트',
-          sub: single ? '' : `슬라이드 ${i + 1}`,
-          placeholder: '이 슬라이드 전체에 대한 지시를 적어 주세요\n예: 내용이 많으니 두 장으로 나눠줘',
-          anchor: anchorEl.getBoundingClientRect(),
-          onSave: (value) => addItem({ type: 'comment', ...slideData, comment: value }, { _slide: slideEl }),
-        }),
-      }, icon('comment', 15), single ? '페이지 전체에 코멘트' : '이 슬라이드에 코멘트'),
-      !single && h('button', {
-        class: 't-delete',
-        onClick: () => {
-          closePopover();
-          if (marked) removeItem(marked.id);
-          else {
-            addItem({ type: 'delete', ...slideData }, { _slide: slideEl });
-            toast(`슬라이드 ${i + 1} 삭제 표시했어요 · ${MOD}+Z 되돌리기`, { ms: 1800 });
-          }
-        },
-      }, icon('trash', 15), marked ? '삭제 표시 취소' : '이 슬라이드 삭제 표시')));
-  openPopover(body, anchorEl.getBoundingClientRect(), { width: 260 });
+      entry('t-comment', 'comment', single ? '페이지 전체에 코멘트' : '이 슬라이드에 코멘트', () => slideComment(slideEl, anchor)),
+      entry('t-layout', 'sketch', '새 배치 스케치 그리기', () => {
+        closePopover();
+        hooks.openSketch?.(slideEl);
+      }),
+      !single && entry('t-layout', 'updown', '이 슬라이드 순서 옮기기', () => openSlideMove(slideEl, anchor)),
+      !single && entry('t-delete', 'trash', marked ? '삭제 표시 취소' : '이 슬라이드 삭제 표시', () => {
+        closePopover();
+        toggleSlideDelete(slideEl);
+      })));
+  openPopover(body, anchor, { width: 270 });
 }
 
 // ---- editing existing marks -----------------------------------------------------------
@@ -349,7 +389,13 @@ export function openItem(id, anchor) {
   if (editorBusy()) return;
   const it = S.items.find((x) => x.id === id);
   if (!it) return;
-  const allowed = it.target === 'text' ? ['delete', 'replace', 'comment'] : it.target === 'region' ? ['comment'] : ['delete', 'comment'];
+  if (it.type === 'layout' && it.target === 'element' && hooks.openLayout?.(it)) return;
+  if (it.type === 'layout' && it.target === 'sketch' && it._slide && hooks.openSketch) {
+    hooks.openSketch(it._slide, it);
+    return;
+  }
+  const allowed = it.type === 'layout' ? ['layout']
+    : it.target === 'text' ? ['delete', 'replace', 'comment'] : it.target === 'region' ? ['comment'] : ['delete', 'comment'];
   const draft = { replacement: it.replacement ?? it.text?.exact ?? '', comment: it.comment || '' };
   let type = it.type;
   const label = h('div', { class: 'label' });
@@ -418,7 +464,8 @@ export function openItem(id, anchor) {
       closePopover();
     }
   });
-  const quoteText = it.target === 'text' ? it.text.exact
+  const quoteText = it.type === 'layout' ? itemSummary(it)
+    : it.target === 'text' ? it.text.exact
     : it.target === 'element' ? it.element?.startTag
       : it.target === 'region' ? `영역 · ${it.region?.where || ''}`
         : `슬라이드 ${(it.slide?.index ?? 0) + 1}${it.slide?.title ? ` · ${it.slide.title}` : ''}`;
