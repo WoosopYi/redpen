@@ -5,6 +5,7 @@ import { describeElement, cssPath } from './anchor.js';
 import { h, clamp, trunc, norm, uid } from './util.js';
 import { icon } from './icons.js';
 import { scheduleRender, registerRenderer } from './ui/overlay.js';
+import { toast } from './ui/feedback.js';
 import { popoverOpen } from './ui/popover.js';
 import * as A from './actions.js';
 import { layoutSummary } from './summary.js';
@@ -20,6 +21,7 @@ import { layoutSummary } from './summary.js';
  */
 
 const SNAP_PX = 6;
+const HOME_PX = 12; // dragging back this close to the original position puts it exactly back
 const MEDIA = /^(img|video|svg|canvas|picture|iframe|object|embed)$/;
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 const CURSOR = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize' };
@@ -451,11 +453,31 @@ function hideBar() {
 // ---- snapping -----------------------------------------------------------------------
 
 /** Lines an edge can snap to. Only like edges pair up (left↔left, center↔center…), so a snap means "aligned". */
-function snapTargets(slideEl, el) {
+function snapTargets(slideEl, el, home = null) {
   const s = slideEl.getBoundingClientRect();
   const xs = [];
   const ys = [];
-  const add = (list, kind, v, label, span) => list.push({ kind, v, label, span });
+  const add = (list, kind, v, label, span, box = null) => list.push({ kind, v, label, span, box, prio: !!box });
+  // purple areas drawn on the slide: an element's original spot, another's target box, sketch boxes
+  const addBox = (r, name) => {
+    add(xs, 'l', r.left, `${name} 왼쪽 선`, [r.top, r.bottom], r);
+    add(xs, 'c', r.left + r.width / 2, `${name} 가로 가운데`, [r.top, r.bottom], r);
+    add(xs, 'r', r.right, `${name} 오른쪽 선`, [r.top, r.bottom], r);
+    add(ys, 't', r.top, `${name} 위쪽 선`, [r.left, r.right], r);
+    add(ys, 'm', r.top + r.height / 2, `${name} 세로 가운데`, [r.left, r.right], r);
+    add(ys, 'b', r.bottom, `${name} 아래쪽 선`, [r.left, r.right], r);
+  };
+  if (home) addBox(home, '원래 위치');
+  for (const it of S.items) {
+    if (it.type !== 'layout') continue;
+    if (it.target === 'sketch' && it._slide === slideEl) {
+      (it.sketch?.boxes || []).forEach((b, i) => addBox(rectOf(b, s), `스케치 칸 ${i + 1}${b.label ? `「${trunc(b.label, 12)}」` : ''}`));
+    } else if (it.target === 'element' && it.layout && it._el?.isConnected && it._el !== el && slideFor(it._el) === slideEl) {
+      const L = it.layout;
+      if (L.to || L.reorder) addBox(rectOf(L.from, s), `${shortName(it._el)}의 원래 위치`);
+      if (L.to && L.fit === 'box') addBox(rectOf(L.to, s), `${shortName(it._el)}의 목표 상자`);
+    }
+  }
   add(xs, 'l', s.left, '슬라이드 왼쪽 끝');
   add(xs, 'c', s.left + s.width / 2, '슬라이드 가로 가운데');
   add(xs, 'r', s.right, '슬라이드 오른쪽 끝');
@@ -501,7 +523,8 @@ function snapRect(R, targets, xEdges, yEdges) {
       for (const t of list) {
         if (t.kind !== edge) continue;
         const d = t.v - v;
-        if (Math.abs(d) <= SNAP_PX && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, t, edge };
+        const dist = Math.abs(d) - (t.prio ? 0.75 : 0); // purple areas win ties
+        if (Math.abs(d) <= SNAP_PX && (!best || dist < best.dist)) best = { d, t, edge, dist };
       }
     }
     return best;
@@ -533,6 +556,21 @@ function hideGuides() {
   N.gy.style.display = 'none';
   N.ins.style.display = 'none';
   N.out.style.display = 'none';
+  N.tbox.style.display = 'none';
+  N.dghost.style.display = 'none';
+}
+
+/** Light up the purple area the element just snapped to. */
+function showSnapBox(snap) {
+  const box = snap?.home || snap?.x?.t.box || snap?.y?.t.box;
+  N.tbox.style.display = box ? '' : 'none';
+  if (box) size(N.tbox, box);
+}
+
+/** Where the element sat originally (before any layout change), in screen pixels. */
+function homeRect(el, slideRect) {
+  const L = findItem(el)?.layout;
+  return L?.from ? rectOf(L.from, slideRect) : el.getBoundingClientRect();
 }
 
 // ---- move / reorder -------------------------------------------------------------------
@@ -592,7 +630,8 @@ function beginMove(d) {
   d.k = ancestorScale(el);
   d.t0 = currentTranslate(el);
   d.rect0 = el.getBoundingClientRect();
-  d.targets = snapTargets(d.slideEl, el);
+  d.home = homeRect(el, d.slideRect);
+  d.targets = snapTargets(d.slideEl, el, d.home);
   d.kids = inFlowKids(el.parentElement);
   d.canReorder = d.kids.length >= 2 && d.kids.includes(el) && !isSlideEl(el.parentElement);
   d.axis = d.canReorder ? axisOf(d.kids.map((k) => k.getBoundingClientRect())) : 'y';
@@ -633,14 +672,27 @@ function updateMove(d, e) {
   d.reorder = to === null ? null : { ...hit, to }; // same slot → it is a free move, not a reorder
   d.snap = null;
   if (!d.reorder && !e.altKey) {
-    d.snap = snapRect(new DOMRect(d.rect0.left + dx, d.rect0.top + dy, d.rect0.width, d.rect0.height), d.targets, ['l', 'c', 'r'], ['t', 'm', 'b']);
-    dx += d.snap.dx;
-    dy += d.snap.dy;
+    const R = new DOMRect(d.rect0.left + dx, d.rect0.top + dy, d.rect0.width, d.rect0.height);
+    const hx = d.home.left - R.left;
+    const hy = d.home.top - R.top;
+    if (Math.abs(hx) <= HOME_PX && Math.abs(hy) <= HOME_PX) {
+      // back over its original spot: lock exactly onto it
+      dx += hx;
+      dy += hy;
+      d.snap = { dx: hx, dy: hy, home: d.home };
+    } else {
+      d.snap = snapRect(R, d.targets, ['l', 'c', 'r'], ['t', 'm', 'b']);
+      dx += d.snap.dx;
+      dy += d.snap.dy;
+    }
   }
   d.dx = dx;
   d.dy = dy;
   put(d.el, 'translate', `${r2(d.t0.x + dx / d.k)}px ${r2(d.t0.y + dy / d.k)}px`);
-  showGuides(d.snap, d.slideRect);
+  showGuides(d.snap?.home ? null : d.snap, d.slideRect);
+  showSnapBox(d.snap);
+  N.dghost.style.display = '';
+  size(N.dghost, d.home);
   if (d.reorder) {
     const r = d.reorder.rect;
     N.ins.style.display = '';
@@ -676,13 +728,16 @@ function endMove(d) {
   const T = el.getBoundingClientRect();
   const prev = findItem(el)?.layout;
   const to = prev?.to && prev.fit === 'box' ? { ...frac(T, d.slideRect), w: prev.to.w, h: prev.to.h } : frac(T, d.slideRect);
-  const snaps = snapNotes(d.snap);
+  const home = !!d.snap?.home;
+  const snaps = home ? [] : snapNotes(d.snap);
   commit(el, (L) => {
-    L.to = to;
+    if (home) L.to = L.to && L.fit === 'box' ? { ...L.to, x: L.from.x, y: L.from.y } : { ...to, x: L.from.x, y: L.from.y };
+    else L.to = to;
     L.fit = prev?.fit || 'scale';
     L.snaps = snaps;
     L.reorder = null;
   });
+  if (home) toast('원래 위치로 되돌렸어요', { ms: 1600 });
   select(el);
 }
 
@@ -709,7 +764,7 @@ function startResize(e, handle) {
   };
   d.slideRect = d.slideEl.getBoundingClientRect();
   d.box0 = prev?.to && prev.fit === 'box' ? rectOf(prev.to, d.slideRect) : d.rect0;
-  d.targets = snapTargets(d.slideEl, el);
+  d.targets = snapTargets(d.slideEl, el, prev?.from ? rectOf(prev.from, d.slideRect) : null);
   drag = d;
   hideBar();
   const target = e.currentTarget;
@@ -747,6 +802,7 @@ function updateResize(d, e) {
     if (hd.includes('s')) bottom += d.snap.dy;
     if (hd.includes('n')) top += d.snap.dy;
     showGuides(d.snap, d.slideRect);
+    showSnapBox(d.snap);
   }
   if (right - left < 12) {
     if (hd.includes('w')) left = right - 12;
@@ -1025,7 +1081,8 @@ function renderMarks() {
       const shifted = !!(L.to || L.reorder);
       const g = rectOf(L.from, s);
       const cur = el.getBoundingClientRect();
-      n.ghost.style.display = shifted ? '' : 'none';
+      const dragged = drag?.started && drag.el === el;
+      n.ghost.style.display = shifted && !dragged ? '' : 'none';
       if (shifted) size(n.ghost, g);
       const c1 = [g.left + g.width / 2, g.top + g.height / 2];
       const c2 = [cur.left + cur.width / 2, cur.top + cur.height / 2];
@@ -1157,12 +1214,14 @@ export function initLayout() {
   N.gy = h('div', { class: 'lguide', style: { display: 'none' } });
   N.ins = h('div', { class: 'lins', style: { display: 'none' } });
   N.out = h('div', { class: 'lout', style: { display: 'none' } });
+  N.tbox = h('div', { class: 'ltarget', style: { display: 'none' } });
+  N.dghost = h('div', { class: 'lghost', style: { display: 'none' } });
   N.svg = document.createElementNS(SVGNS, 'svg');
   N.svg.setAttribute('class', 'larrows');
   N.svg.innerHTML = '<defs><marker id="rp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8e4ec6"/></marker></defs>';
   N.bar = h('div', { class: 'lbar', style: { display: 'none' } });
   N.hint = h('div', { class: 'lhint', style: { display: 'none' } }, icon('layout', 14), '바꿀 요소를 클릭하세요 · 끌어서 이동 · 모서리로 크기');
-  ui.layer.append(N.svg, N.box, N.out, N.gx, N.gy, N.ins, ...N.handles, N.size);
+  ui.layer.append(N.svg, N.dghost, N.tbox, N.box, N.out, N.gx, N.gy, N.ins, ...N.handles, N.size);
   ui.app.append(N.bar, N.hint);
   registerRenderer(render);
   let t = 0;

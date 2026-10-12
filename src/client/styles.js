@@ -141,6 +141,10 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
   position: absolute; left: 0; top: 0; border: 1.5px dashed rgba(142, 78, 198, .75); border-radius: 3px; pointer-events: none;
   background: repeating-linear-gradient(-45deg, rgba(142, 78, 198, .04) 0 6px, rgba(142, 78, 198, .11) 6px 12px);
 }
+.ltarget {
+  position: absolute; left: 0; top: 0; border: 2px solid #8e4ec6; border-radius: 4px; background: rgba(142, 78, 198, .10);
+  box-shadow: 0 0 0 4px rgba(142, 78, 198, .22); pointer-events: none; z-index: 4;
+}
 .larrows { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .larrows line { stroke: #8e4ec6; stroke-width: 2; stroke-dasharray: 6 4; }
 .box.t-layout { border: 1.5px dashed var(--c); background: transparent; }

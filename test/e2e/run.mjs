@@ -590,6 +590,27 @@ async function layoutDeck(browser) {
   check(list.length === 1 && list[0].type === 'layout' && list[0].L.to, 'layout mark with a target box', list);
   check(c[0].translate && Math.abs(c[0].y - c0[0].y - 50) < 6, 'card previewed ~50px lower', c[0]);
 
+  title('dragging it back near its original spot (purple) snaps exactly home and cancels the move');
+  const back = { x: c0[0].x + 5 - c[0].x, y: c0[0].y + 7 - c[0].y }; // lands 5px/7px off the original spot
+  await page.mouse.move(c[0].x + 80, c[0].y + c[0].h - 60);
+  await page.mouse.down();
+  await page.mouse.move(c[0].x + 80 + back.x / 2, c[0].y + c[0].h - 60 + back.y / 2 - 20, { steps: 5 });
+  await page.mouse.move(c[0].x + 80 + back.x, c[0].y + c[0].h - 60 + back.y, { steps: 5 });
+  const during = await page.evaluate(() => {
+    const root = document.getElementById('__redpen-host').shadowRoot;
+    const vis = (el) => !!el && el.style.display !== 'none' && el.getBoundingClientRect().width > 0;
+    return { target: vis(root.querySelector('.ltarget')), ghost: [...root.querySelectorAll('.lghost')].some(vis) };
+  });
+  check(during.target && during.ghost, 'original spot drawn and lit up while dragging over it', during);
+  await page.mouse.up();
+  await sleep(300);
+  list = await items();
+  c = await cards();
+  check(list.length === 0 && !c[0].translate && Math.abs(c[0].y - c0[0].y) < 1 && Math.abs(c[0].x - c0[0].x) < 1, 'exactly home: the move is cancelled', { list, c: c[0] });
+  check((await $.shadowAll('.toast')).some((t) => t.includes('원래 위치')), 'toast "원래 위치로 되돌렸어요"');
+  await drag(c0[0].x + 80, c0[0].y + c0[0].h - 60, c0[0].x + 110, c0[0].y + c0[0].h - 10);
+  check((await items()).length === 1 && Math.abs((await cards())[0].y - c0[0].y - 50) < 6, 'moved down again for the next steps');
+
   title('corner handle resizes proportionally; + makes the text bigger');
   const se = await $.shadow('.lh[data-h="se"]');
   await drag(se.x, se.y, se.x + 60, se.y + 40);
@@ -669,6 +690,26 @@ async function layoutDeck(browser) {
   const sk = list.find((i) => i.target === 'sketch');
   check(sk && sk.sketch.boxes.map((x) => x.label).join('|') === '큰 사진|설명 세 줄', 'sketch with 2 labelled boxes', sk?.sketch);
   check(await page.evaluate(() => !!document.getElementById('__redpen-host').shadowRoot.querySelector('.skview')), 'sketch drawn on the slide');
+
+  title('a dragged element snaps to the sketch box lines (purple areas)');
+  await $.clickShadow('.tb[data-mode="element"]');
+  const h2 = await page.evaluate(() => {
+    const r = document.querySelector('.slide.active h2').getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+  const boxLeft = area.x + area.w * 0.05;
+  await page.mouse.move(h2.x + 30, h2.y + h2.h / 2);
+  await page.mouse.down();
+  await page.mouse.move(h2.x + 20, h2.y + h2.h / 2 + 60, { steps: 5 });
+  await page.mouse.move(h2.x + 30 + (boxLeft + 3 - h2.x), h2.y + h2.h / 2 + 120, { steps: 5 }); // 3px right of the box's left line
+  check((await $.shadow('.ltarget'))?.visible, 'the sketch box lights up');
+  await page.mouse.up();
+  await sleep(300);
+  const h2x = await page.evaluate(() => document.querySelector('.slide.active h2').getBoundingClientRect().left);
+  const h2item = (await items()).find((i) => i.target === 'element' && i.L?.snaps?.some((s) => s.includes('스케치 칸 1')));
+  check(Math.abs(h2x - boxLeft) < 1 && h2item?.L.snaps.includes('스케치 칸 1「큰 사진」 왼쪽 선에 맞춤'), 'heading lined up with sketch box 1', { h2x, boxLeft, snaps: h2item?.L.snaps });
+  await page.keyboard.press('Escape');
+  await $.clickShadowText('.tb', '텍스트');
   await $.clickShadow('.bar .tb.hide-paused');
   await $.clickShadowText('.pop .menu button', '순서 옮기기');
   await $.clickShadowText('.pop .btn', '맨 앞으로');
@@ -691,6 +732,7 @@ async function layoutDeck(browser) {
   check(/- 글자 크기: 24px → \d+px \(\+\d+%\)/.test(md), 'font size instruction');
   check(/- 순서: 2번째 → 1번째 — 「잘하는 일/.test(md), 'order instruction');
   check(/간격\(gap\): 40px → 50px/.test(md), 'gap instruction');
+  check(/- 맞춤: .*스케치 칸 1「큰 사진」 왼쪽 선에 맞춤/.test(md), 'snap to the sketch box explained');
   check(/### #\d+ 📐 새 배치 스케치[\s\S]*1\. "큰 사진" — 왼쪽/.test(md), 'sketch boxes in reading order');
   check(/이 슬라이드를 \*\*1번째\*\*로 옮기세요/.test(md), 'slide move instruction');
   await sleep(500);
