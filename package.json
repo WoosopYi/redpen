@@ -1,0 +1,27 @@
+{
+  "name": "redpen",
+  "version": "0.1.0",
+  "description": "빨간펜 — HTML 슬라이드 위에 직접 표시한 수정 사항을 Claude Code·Codex 세션에 그대로 전달하는 리뷰 도구",
+  "type": "module",
+  "bin": {
+    "redpen": "bin/redpen.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node --test \"test/unit/*.test.mjs\"",
+    "test:e2e": "node test/e2e/run.mjs",
+    "demo": "node bin/redpen.mjs open examples/basic/index.html"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  },
+  "license": "MIT"
+}

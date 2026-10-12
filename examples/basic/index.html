@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>생성형 AI 활용 기초 — 사내 교육</title>
+  <style>
+    :root { --ink: #16181d; --muted: #5b616e; --line: #e3e5ea; --accent: #2f6bff; --bg: #f6f7f9; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; background: #111; overflow: hidden; font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif; color: var(--ink); }
+    #stage { position: absolute; width: 1600px; height: 900px; transform-origin: 0 0; }
+    .slide { position: absolute; inset: 0; padding: 84px 96px; background: #fff; display: flex; flex-direction: column; gap: 28px;
+             opacity: 0; visibility: hidden; transition: opacity .25s; }
+    .slide.active { opacity: 1; visibility: visible; }
+    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: 18px; }
+    h1 { font-size: 72px; line-height: 1.15; letter-spacing: -0.02em; }
+    h2 { font-size: 48px; letter-spacing: -0.02em; }
+    p.lead { font-size: 26px; color: var(--muted); line-height: 1.6; max-width: 1100px; }
+    ul.points { display: grid; gap: 18px; padding-left: 28px; font-size: 28px; line-height: 1.5; }
+    ul.points li::marker { color: var(--accent); }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; }
+    .card { background: var(--bg); border-radius: 20px; padding: 32px; font-size: 24px; line-height: 1.6; }
+    .card h3 { font-size: 28px; margin-bottom: 12px; }
+    table { border-collapse: collapse; font-size: 24px; width: 100%; }
+    th, td { border-bottom: 1px solid var(--line); padding: 16px 12px; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .foot { margin-top: auto; display: flex; justify-content: space-between; color: var(--muted); font-size: 16px; }
+    .cover { background: linear-gradient(135deg, #0f1b3d, #2f6bff); color: #fff; justify-content: center; }
+    .cover p.lead { color: rgba(255,255,255,.8); }
+    .cover .eyebrow { color: #9fc0ff; }
+    figure { flex: 1; display: grid; place-items: center; background: var(--bg); border-radius: 20px; }
+    #nav { position: fixed; right: 18px; bottom: 14px; display: flex; gap: 6px; align-items: center; color: #aaa; font: 13px ui-monospace, monospace; }
+    #nav button { background: #222; color: #eee; border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <section class="slide cover" data-title="표지">
+      <div class="eyebrow">AI LITERACY 101</div>
+      <h1>생성형 AI 활용 기초</h1>
+      <p class="lead">업무에 바로 쓰는 프롬프트 작성법과 주의할 점을 90분 동안 함께 익힙니다.</p>
+      <div class="foot"><span>사내 교육 · 2026</span><span>01</span></div>
+    </section>
+
+    <section class="slide" data-title="오늘의 목표">
+      <div class="eyebrow">AGENDA</div>
+      <h2>오늘의 목표</h2>
+      <ul class="points">
+        <li>생성형 AI가 무엇을 잘하고 무엇을 못하는지 이해한다</li>
+        <li>좋은 프롬프트의 네 가지 요소를 익힌다</li>
+        <li>실제 업무 문서에 적용해 본다</li>
+        <li>보안과 저작권에서 주의할 점을 확인한다</li>
+      </ul>
+      <div class="foot"><span>생성형 AI 활용 기초</span><span>02</span></div>
+    </section>
+
+    <section class="slide" data-title="생성형 AI란">
+      <div class="eyebrow">CONCEPT</div>
+      <h2>생성형 AI란 무엇인가</h2>
+      <p class="lead">생성형 AI는 학습한 데이터의 패턴을 바탕으로 새로운 글, 이미지, 코드를 만들어 내는 인공지능입니다. 그리고 이것은 매우 중요합니다. 정답을 검색하는 것이 아니라 그럴듯한 다음 단어를 예측한다는 점을 기억하세요.</p>
+      <div class="cols">
+        <div class="card"><h3>잘하는 일</h3>초안 작성, 요약, 번역, 아이디어 확장, 형식 바꾸기</div>
+        <div class="card"><h3>조심할 일</h3>최신 정보, 정확한 수치, 출처가 필요한 주장 — 반드시 사람이 확인</div>
+      </div>
+      <div class="foot"><span>생성형 AI 활용 기초</span><span>03</span></div>
+    </section>
+
+    <section class="slide" data-title="좋은 프롬프트의 4요소">
+      <div class="eyebrow">PROMPT</div>
+      <h2>좋은 프롬프트의 4요소</h2>
+      <table>
+        <thead><tr><th>요소</th><th>설명</th><th>예시</th></tr></thead>
+        <tbody>
+          <tr><td>역할</td><td>AI가 맡을 입장</td><td>“너는 10년차 인사 담당자야”</td></tr>
+          <tr><td>맥락</td><td>배경과 목적</td><td>“신입 교육 자료를 만들고 있어”</td></tr>
+          <tr><td>지시</td><td>해야 할 일</td><td>“아래 내용을 5줄로 요약해줘”</td></tr>
+          <tr><td>형식</td><td>결과물의 모양</td><td>“표로, 2023년 기준으로”</td></tr>
+        </tbody>
+      </table>
+      <div class="foot"><span>생성형 AI 활용 기초</span><span>04</span></div>
+    </section>
+
+    <section class="slide" data-title="업무 흐름">
+      <div class="eyebrow">WORKFLOW</div>
+      <h2>AI와 함께 일하는 흐름</h2>
+      <figure>
+        <svg width="1100" height="260" viewBox="0 0 1100 260" role="img" aria-label="초안-검토-수정 흐름도">
+          <g font-size="26" font-family="sans-serif" text-anchor="middle">
+            <rect x="20" y="70" width="260" height="120" rx="18" fill="#e8efff"/><text x="150" y="140">AI 초안</text>
+            <rect x="420" y="70" width="260" height="120" rx="18" fill="#fff4e0"/><text x="550" y="140">사람 검토</text>
+            <rect x="820" y="70" width="260" height="120" rx="18" fill="#e7f7ec"/><text x="950" y="140">수정 · 완성</text>
+          </g>
+          <path d="M290 130h110M690 130h110" stroke="#9aa3b2" stroke-width="4" marker-end="url(#a)"/>
+          <defs><marker id="a" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#9aa3b2"/></marker></defs>
+        </svg>
+      </figure>
+      <div class="foot"><span>생성형 AI 활용 기초</span><span>05</span></div>
+    </section>
+
+    <section class="slide" data-title="정리">
+      <div class="eyebrow">SUMMARY</div>
+      <h2>정리</h2>
+      <ul class="points">
+        <li>AI는 초안을 빠르게, 사람은 판단을 정확하게</li>
+        <li>역할 · 맥락 · 지시 · 형식을 갖춘 프롬프트</li>
+        <li>민감 정보는 절대 입력하지 않기</li>
+      </ul>
+      <div class="foot"><span>생성형 AI 활용 기초</span><span>06</span></div>
+    </section>
+  </div>
+  <nav id="nav"><button id="prev">←</button><span id="counter">1 / 6</span><button id="next">→</button></nav>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const stage = document.getElementById('stage');
+    let cur = Math.max(0, Math.min(slides.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+    function fit() {
+      const s = Math.min(innerWidth / 1600, innerHeight / 900);
+      stage.style.transform = `scale(${s})`;
+      stage.style.left = `${(innerWidth - 1600 * s) / 2}px`;
+      stage.style.top = `${(innerHeight - 900 * s) / 2}px`;
+    }
+    function go(i) {
+      cur = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+      document.getElementById('counter').textContent = `${cur + 1} / ${slides.length}`;
+      history.replaceState(null, '', `#${cur + 1}`);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(cur + 1);
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) go(cur - 1);
+    });
+    // click anywhere to advance (common in AI-made decks)
+    document.getElementById('stage').addEventListener('click', () => go(cur + 1));
+    document.getElementById('prev').onclick = () => go(cur - 1);
+    document.getElementById('next').onclick = () => go(cur + 1);
+    addEventListener('hashchange', () => go((parseInt(location.hash.slice(1), 10) || 1) - 1));
+    addEventListener('resize', fit);
+    fit(); go(cur);
+  </script>
+</body>
+</html>
