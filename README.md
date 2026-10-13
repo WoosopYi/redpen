@@ -1,5 +1,7 @@
 # ✒️ 빨간펜 (redpen)
 
+**한국어** · [English](README.en.md)
+
 AI가 만든 HTML 슬라이드를 **화면 위에 직접 표시해서** 고치는 도구입니다.
 표시한 내용은 슬라이드 번호·원문·앞뒤 문맥·소스 `파일:행`이 담긴 수정 요청이 되어, **HTML을 만들던 바로 그 Claude Code·Codex 대화 세션**으로 전달됩니다.
 
@@ -208,7 +210,8 @@ slides/.redpen/index.html/
 npm install        # 테스트용 puppeteer-core (설치된 Chrome 사용)
 npm test           # 단위 테스트
 npm run test:e2e   # 브라우저 E2E (CHROME_PATH=…로 브라우저 지정, HEADFUL=1로 보기)
-npm run demo       # 예제 덱 열기
+npm run demo       # 예제 덱 열기 (영어 예제: npm run demo:en)
+npm run screenshots # docs/screenshot*.png 다시 찍기
 ```
 
-구성: `src/cli.mjs`(명령) · `src/server.mjs`(서버·SSE) · `src/store.mjs`(파일 상태) · `src/locate.mjs`(소스 위치 찾기) · `src/prompt.mjs`(프롬프트) · `src/client/`(브라우저 오버레이, 의존성 없는 ES 모듈) · `skills/redpen/SKILL.md`(Claude Code·Codex 스킬).
+구성: `src/cli.mjs`(명령) · `src/server.mjs`(서버·SSE) · `src/store.mjs`(파일 상태) · `src/locate.mjs`(소스 위치 찾기) · `src/prompt.mjs`(프롬프트) · `src/client/`(브라우저 오버레이, 의존성 없는 ES 모듈) · `src/client/i18n/`(한국어 원문 → 영어) · `skills/redpen/SKILL.md`(Claude Code·Codex 스킬).

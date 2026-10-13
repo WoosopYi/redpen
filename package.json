@@ -10,7 +10,8 @@
     "bin",
     "src",
     "skills",
-    "README.md"
+    "README.md",
+    "README.en.md"
   ],
   "engines": {
     "node": ">=18.17"
@@ -18,7 +19,9 @@
   "scripts": {
     "test": "node --test \"test/unit/*.test.mjs\"",
     "test:e2e": "node test/e2e/run.mjs",
-    "demo": "node bin/redpen.mjs open examples/basic/index.html"
+    "demo": "node bin/redpen.mjs open examples/basic/index.html",
+    "demo:en": "node bin/redpen.mjs open examples/basic-en/index.html --lang en",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^24.0.0"

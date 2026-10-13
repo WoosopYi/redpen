@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Generative AI Basics — Staff Training</title>
+  <style>
+    :root { --ink: #16181d; --muted: #5b616e; --line: #e3e5ea; --accent: #2f6bff; --bg: #f6f7f9; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; background: #111; overflow: hidden; font-family: "Inter", -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+    #stage { position: absolute; width: 1600px; height: 900px; transform-origin: 0 0; }
+    .slide { position: absolute; inset: 0; padding: 84px 96px; background: #fff; display: flex; flex-direction: column; gap: 28px;
+             opacity: 0; visibility: hidden; transition: opacity .25s; }
+    .slide.active { opacity: 1; visibility: visible; }
+    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: 18px; }
+    h1 { font-size: 72px; line-height: 1.15; letter-spacing: -0.02em; }
+    h2 { font-size: 48px; letter-spacing: -0.02em; }
+    p.lead { font-size: 26px; color: var(--muted); line-height: 1.6; max-width: 1100px; }
+    ul.points { display: grid; gap: 18px; padding-left: 28px; font-size: 28px; line-height: 1.5; }
+    ul.points li::marker { color: var(--accent); }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; }
+    .card { background: var(--bg); border-radius: 20px; padding: 32px; font-size: 24px; line-height: 1.6; }
+    .card h3 { font-size: 28px; margin-bottom: 12px; }
+    table { border-collapse: collapse; font-size: 24px; width: 100%; }
+    th, td { border-bottom: 1px solid var(--line); padding: 16px 12px; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .foot { margin-top: auto; display: flex; justify-content: space-between; color: var(--muted); font-size: 16px; }
+    .cover { background: linear-gradient(135deg, #0f1b3d, #2f6bff); color: #fff; justify-content: center; }
+    .cover p.lead { color: rgba(255,255,255,.8); }
+    .cover .eyebrow { color: #9fc0ff; }
+    figure { flex: 1; display: grid; place-items: center; background: var(--bg); border-radius: 20px; }
+    #nav { position: fixed; right: 18px; bottom: 14px; display: flex; gap: 6px; align-items: center; color: #aaa; font: 13px ui-monospace, monospace; }
+    #nav button { background: #222; color: #eee; border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <section class="slide cover" data-title="Cover">
+      <div class="eyebrow">AI LITERACY 101</div>
+      <h1>Generative AI Basics</h1>
+      <p class="lead">In 90 minutes, learn to write prompts you can use at work right away — and what to watch out for.</p>
+      <div class="foot"><span>Staff training · 2026</span><span>01</span></div>
+    </section>
+
+    <section class="slide" data-title="Today's goals">
+      <div class="eyebrow">AGENDA</div>
+      <h2>Today's goals</h2>
+      <ul class="points">
+        <li>Understand what generative AI is good and bad at</li>
+        <li>Learn the four parts of a good prompt</li>
+        <li>Try it on real work documents</li>
+        <li>Check the security and copyright pitfalls</li>
+      </ul>
+      <div class="foot"><span>Generative AI Basics</span><span>02</span></div>
+    </section>
+
+    <section class="slide" data-title="What is generative AI">
+      <div class="eyebrow">CONCEPT</div>
+      <h2>What is generative AI?</h2>
+      <p class="lead">Generative AI creates new text, images and code from patterns in the data it learned from. And this is very important. Remember that it does not look up the right answer — it predicts a plausible next word.</p>
+      <div class="cols">
+        <div class="card"><h3>Good at</h3>First drafts, summaries, translation, brainstorming, reformatting</div>
+        <div class="card"><h3>Be careful with</h3>Recent facts, exact numbers, claims that need a source — a person must check</div>
+      </div>
+      <div class="foot"><span>Generative AI Basics</span><span>03</span></div>
+    </section>
+
+    <section class="slide" data-title="Four parts of a good prompt">
+      <div class="eyebrow">PROMPT</div>
+      <h2>Four parts of a good prompt</h2>
+      <table>
+        <thead><tr><th>Part</th><th>What it is</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Role</td><td>Who the AI should be</td><td>“You are an HR manager with 10 years of experience”</td></tr>
+          <tr><td>Context</td><td>Background and purpose</td><td>“I’m preparing onboarding material”</td></tr>
+          <tr><td>Task</td><td>What to do</td><td>“Summarize the text below in 5 lines”</td></tr>
+          <tr><td>Format</td><td>Shape of the result</td><td>“As a table, as of 2023”</td></tr>
+        </tbody>
+      </table>
+      <div class="foot"><span>Generative AI Basics</span><span>04</span></div>
+    </section>
+
+    <section class="slide" data-title="Workflow">
+      <div class="eyebrow">WORKFLOW</div>
+      <h2>Working together with AI</h2>
+      <figure>
+        <svg width="1100" height="260" viewBox="0 0 1100 260" role="img" aria-label="Draft, review, revise flow">
+          <g font-size="26" font-family="sans-serif" text-anchor="middle">
+            <rect x="20" y="70" width="260" height="120" rx="18" fill="#e8efff"/><text x="150" y="140">AI draft</text>
+            <rect x="420" y="70" width="260" height="120" rx="18" fill="#fff4e0"/><text x="550" y="140">Human review</text>
+            <rect x="820" y="70" width="260" height="120" rx="18" fill="#e7f7ec"/><text x="950" y="140">Revise · finish</text>
+          </g>
+          <path d="M290 130h110M690 130h110" stroke="#9aa3b2" stroke-width="4" marker-end="url(#a)"/>
+          <defs><marker id="a" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0 0l10 5-10 5z" fill="#9aa3b2"/></marker></defs>
+        </svg>
+      </figure>
+      <div class="foot"><span>Generative AI Basics</span><span>05</span></div>
+    </section>
+
+    <section class="slide" data-title="Summary">
+      <div class="eyebrow">SUMMARY</div>
+      <h2>Summary</h2>
+      <ul class="points">
+        <li>AI drafts fast; people judge carefully</li>
+        <li>Prompts with role · context · task · format</li>
+        <li>Never paste sensitive information</li>
+      </ul>
+      <div class="foot"><span>Generative AI Basics</span><span>06</span></div>
+    </section>
+  </div>
+  <nav id="nav"><button id="prev">←</button><span id="counter">1 / 6</span><button id="next">→</button></nav>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const stage = document.getElementById('stage');
+    let cur = Math.max(0, Math.min(slides.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+    function fit() {
+      const s = Math.min(innerWidth / 1600, innerHeight / 900);
+      stage.style.transform = `scale(${s})`;
+      stage.style.left = `${(innerWidth - 1600 * s) / 2}px`;
+      stage.style.top = `${(innerHeight - 900 * s) / 2}px`;
+    }
+    function go(i) {
+      cur = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s, k) => s.classList.toggle('active', k === cur));
+      document.getElementById('counter').textContent = `${cur + 1} / ${slides.length}`;
+      history.replaceState(null, '', `#${cur + 1}`);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) go(cur + 1);
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) go(cur - 1);
+    });
+    // click anywhere to advance (common in AI-made decks)
+    document.getElementById('stage').addEventListener('click', () => go(cur + 1));
+    document.getElementById('prev').onclick = () => go(cur - 1);
+    document.getElementById('next').onclick = () => go(cur + 1);
+    addEventListener('hashchange', () => go((parseInt(location.hash.slice(1), 10) || 1) - 1));
+    addEventListener('resize', fit);
+    fit(); go(cur);
+  </script>
+</body>
+</html>
