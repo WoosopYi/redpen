@@ -1,6 +1,6 @@
 ---
 name: redpen
-description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저에서 보며 사람이 직접 표시한 수정 사항(텍스트 삭제·수정·코멘트, 요소·영역·슬라이드 지정)을 받아 HTML에 반영하는 리뷰 루프. 사용자가 "빨간펜", "redpen", "리뷰 모드", "화면 보면서 고칠게", "브라우저에서 표시할게", "슬라이드 수정 화면 열어줘", "리뷰 반영해줘", "피드백 반영해줘"라고 하거나, 방금 만든 HTML 슬라이드를 직접 보며 고치고 싶어할 때 사용한다.
+description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저에서 보며 사람이 직접 표시한 수정 사항(텍스트 삭제·수정·코멘트, 요소·영역·슬라이드 지정, 레이아웃)을 받아 HTML에 반영하는 리뷰 루프. 사용자가 "빨간펜", "redpen", "리뷰 모드", "화면 보면서 고칠게", "브라우저에서 표시할게", "슬라이드 수정 화면 열어줘", "리뷰 반영해줘", "피드백 반영해줘"라고 하거나, 방금 만든 HTML 슬라이드를 직접 보며 고치고 싶어할 때 사용한다. English: use when the user says "redpen", "red pen review", "review mode", "let me mark it up in the browser", "open the slide review", "apply my review" or "apply my feedback", or wants to fix the HTML slides just made by marking them on screen.
 ---
 
 # 빨간펜 리뷰 루프
@@ -10,8 +10,10 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 ## 1. 시작
 
 1. 대상 HTML을 정한다 — 사용자가 말한 파일, 없으면 이 대화에서 만들거나 고친 HTML. 후보가 여러 개라 애매하면 물어본다.
-2. `redpen open <html>` 을 실행하고 출력된 주소를 사용자에게 알려 준다 (브라우저가 자동으로 열린다).
-3. 한 줄로 안내한다: "텍스트를 드래그해 D(삭제)·R(수정)·C(코멘트), 배치는 '레이아웃'에서 끌어서 옮기고 모서리로 크기, 빈 곳은 '영역'으로 표시하고 [AI에게 보내기]를 누르세요."
+2. `redpen open <html> --lang <ko|en>` 을 실행하고 출력된 주소를 사용자에게 알려 준다 (브라우저가 자동으로 열린다). `--lang`은 사용자가 이 대화에서 쓰는 언어로 — 한국어면 `ko`, 영어면 `en`. 화면과 수정 요청이 그 언어로 나온다.
+3. 사용자의 언어로 한 줄 안내한다:
+   - 한국어: "텍스트를 드래그해 D(삭제)·R(수정)·C(코멘트), 배치는 '레이아웃'에서 끌어서 옮기고 모서리로 크기, 빈 곳은 '영역'으로 표시하고 [AI에게 보내기]를 누르세요."
+   - English: "Drag over text and press D (delete), R (replace) or C (comment); in 'Layout' drag things to move them and use the corners to resize; mark empty space with 'Area', then press [Send to AI]."
 4. 곧바로 2단계로 대기에 들어간다.
 
 ## 2. 수정 요청 기다리기
@@ -35,7 +37,7 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 ## 4. 결과 알리고 다음 라운드
 
 - 반영이 끝나면 `redpen wait <html> --reply "<무엇을 바꿨는지 1~3문장 · 못 한 항목은 이유>"` 를 다시 **백그라운드로** 실행한다. 답장이 브라우저에 뜨고 다음 수정 요청을 기다린다 → 2단계로.
-- 사용자에게도 같은 내용을 짧게 말한다.
+- 사용자에게도 같은 내용을 짧게 말한다. 답장(`--reply`)과 안내는 사용자가 쓰는 언어로 쓴다.
 - 사용자가 리뷰를 끝내자고 하면 `redpen done <html> --reply "<요약>"` 을 실행한다 (기다리던 wait도 함께 끝난다).
 
 ## 수동 모드
@@ -47,5 +49,6 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 - `<html>` 을 생략하면 마지막으로 연 파일을 쓴다. 폴더를 주면 그 안의 `index.html` 을 연다.
 - 슬라이드 번호가 이상하면(감지 실패) `redpen open <html> --slide "<슬라이드 요소 선택자>"`.
 - `redpen status <html>` 상태 확인 · `redpen stop <html>` 서버 종료.
+- 사용자가 화면 언어를 바꾸고 싶어하면 `redpen open <html> --lang en`(또는 `ko`) — 열린 탭도 그 언어로 바뀐다.
 - `redpen` 명령이 없으면 사용자에게 설치를 안내한다: 빨간펜 저장소 폴더에서 `node bin/redpen.mjs setup` (또는 `npm link`).
 - 리뷰 데이터는 `<HTML 폴더>/.redpen/` 에 저장되며 git에서 자동 제외된다.
