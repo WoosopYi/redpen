@@ -232,6 +232,13 @@ const RULES = {
 4. 같은 문구가 여러 곳에 있으면 슬라이드 번호·문맥(⟦ ⟧ 안이 표시한 부분)·소스 위치로 정확한 곳을 고르세요. 슬라이드 번호와 소스 행은 모두 **편집 전** 기준입니다.
 5. 📐 **레이아웃** — 사람이 화면에서 직접 옮기고·키우고·순서를 바꿔 본 결과입니다. 그 모습이 되도록 HTML/CSS를 고치되, \`translate\`·절대 좌표로 흉내 내기보다 원래 방식(flex·grid·요소 순서·여백·글자 크기)에 맞게 구조를 바꾸세요. %·px 수치는 목표값 참고용입니다. **새 배치 스케치**는 칸의 위치·비율대로 슬라이드를 다시 구성하라는 뜻입니다.
 6. 요청하지 않은 부분은 바꾸지 마세요. 지시가 모호하면 가장 합리적으로 해석하고, 결과 보고에 그 해석을 적으세요.`,
+  en: `## How to apply
+1. 🗑 **Delete** — remove only the marked text, element or slide. Then tidy up tags left empty (an empty \`<li>\`, \`<p>\`, \`<div>\`…) and stray punctuation or spaces.
+2. ✏️ **Replace** — change \`Original\` to \`New\`. Keep the surrounding formatting such as bold or links.
+3. 💬 **Comment** — interpret the **instruction** and apply it, judging by its target (text, element, area or slide) and position.
+4. If the same wording appears in several places, use the slide number, the context (the marked part is inside ⟦ ⟧) and the source location to pick the right one. Slide numbers and source lines all refer to the file **before** your edits.
+5. 📐 **Layout** — a person moved, resized or reordered things on screen to show the result they want. Edit the HTML/CSS so it looks like that, but instead of faking it with \`translate\` or absolute coordinates, change the structure the way it is built (flex, grid, element order, spacing, font size). The % and px values are targets for reference. A **new layout sketch** means: rebuild the slide following the position and proportions of its boxes.
+6. Don't change anything that wasn't requested. If an instruction is ambiguous, pick the most reasonable reading and mention it in your report.`,
 };
 
 function renderRound(r, { rules }) {
@@ -258,7 +265,7 @@ function renderRound(r, { rules }) {
     const s = list[0].slide;
     L.push('');
     if (key === -1) L.push(tr('## 페이지'));
-    else L.push(`${tr('## 슬라이드 {n}', { n: key + 1 })}${s?.title ? ` · 「${clip(s.title, 60)}」` : ''}`);
+    else L.push(`${tr('## 슬라이드 {n}', { n: key + 1 })}${s?.title ? ` · ${tr('「{text}」', { text: clip(s.title, 60) })}` : ''}`);
     const hint = r.slideSources?.[key];
     if (hint?.total) L.push(tr('슬라이드 위치 참고: {list} 부근', { list: hint.hits.slice(0, 3).map(loc).join(', ') }));
     for (const it of list) L.push('', renderItem(it));

@@ -37,6 +37,7 @@ function copyExample(name) {
 }
 
 process.env.REDPEN_HOME = OUT; // keep the user's "last opened deck" untouched
+process.env.REDPEN_LANG = 'ko'; // Korean UI unless a scenario asks for --lang en
 
 const opened = new Set();
 function cli(...args) {
@@ -881,6 +882,88 @@ if (!CHROME) {
   console.error('Chrome not found. Set CHROME_PATH.');
   process.exit(1);
 }
+// ---- scenario 6: English (--lang en), then switching the open page back to Korean --------------
+
+const HANGUL = /\p{Script=Hangul}/u;
+
+async function englishDeck(browser) {
+  const dir = path.join(OUT, 'english');
+  fs.cpSync(path.join(ROOT, 'examples', 'basic'), dir, { recursive: true, filter: (p) => !p.includes('.redpen') });
+  const file = path.join(dir, 'index.html');
+  const out = cli('open', file, '--no-open', '--port', '0', '--lang', 'en');
+  const url = /(http:\/\/localhost:\d+\/\S+)/.exec(out)[1];
+  console.log(`\n=== english: ${url}`);
+  title('--lang en: CLI, toolbar, selection bar, layout mode and panel speak English');
+  check(/Opened the Redpen review page/.test(out) && !HANGUL.test(out.replace(file, '')), 'CLI output in English', out);
+  const { page, errors } = await openPage(browser, `${url}#3`);
+  const $ = helpers(page);
+  const text = (sel) => page.evaluate((s) => [...document.getElementById('__redpen-host').shadowRoot.querySelectorAll(s)].map((e) => e.textContent).join(' | '), sel);
+  const bar = await text('.bar');
+  check(['Text', 'Layout', 'Area', 'List', 'Send to AI', 'AI offline'].every((w) => bar.includes(w)) && !HANGUL.test(bar), 'toolbar in English', bar);
+  await $.dragSelect('그리고 이것은 매우 중요합니다.');
+  const selbar = await text('.selbar');
+  check(/Delete.*Replace.*Comment/.test(selbar) && !HANGUL.test(selbar), 'selection bar in English', selbar);
+  await page.keyboard.press('KeyD');
+  await sleep(200);
+  check((await $.shadowAll('.toast')).some((t) => t.includes('Marked for deletion')), 'toast in English');
+  await page.evaluate(() => localStorage.removeItem('redpen:layout-tip'));
+  await $.clickShadow('.tb[data-mode="element"]');
+  const coachText = await text('.lcoach');
+  check(coachText.includes('Layout mode') && !HANGUL.test(coachText), 'layout how-to card in English', coachText);
+  await $.clickShadowText('.lcoach .btn', 'Got it');
+  const card = await page.evaluate(() => {
+    const r = document.querySelector('.slide.active .card').getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+  await page.mouse.move(card.x + 60, card.y + card.h - 40);
+  await page.mouse.down();
+  await page.mouse.move(card.x + 80, card.y + card.h - 20, { steps: 4 });
+  await page.mouse.move(card.x + 100, card.y + card.h + 10, { steps: 4 });
+  await page.mouse.up();
+  await sleep(400);
+  const lbar = await text('.lbar');
+  check(['Font', 'Gap', 'Padding', 'Center', 'Parent', 'Reset', 'moved'].every((w) => lbar.includes(w)) && !HANGUL.test(lbar), 'layout bar and its summary in English', lbar);
+  await $.shot('english-layout');
+  await page.keyboard.press('Escape');
+  await $.openPanel();
+  const panel = `${await text('.panel .tabs')} ${await text('.panel .p-foot')} ${await text('.panel .r-type')}`;
+  check(/Draft/.test(panel) && /Sent/.test(panel) && /Send to AI/.test(panel) && !HANGUL.test(panel), 'panel in English', panel);
+  await $.closePanel();
+
+  title('the AI gets an English prompt (deck text stays as written)');
+  const waiter = startWait(file);
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'waiting', { timeout: 8000 }).catch(() => {});
+  await $.clickShadow('.bar .send');
+  const res = await withTimeout(waiter.done, 10000, 'wait exits');
+  fs.writeFileSync(path.join(OUT, 'english-round1.md'), res.stdout);
+  console.log(`    📝 ${path.join(OUT, 'english-round1.md')}`);
+  const md = res.stdout;
+  const rules = md.slice(md.indexOf('## How to apply'), md.indexOf('\n## Slide'));
+  check(/^# ✒️ Redpen edit request · round 1/.test(md) && rules.length > 100 && !HANGUL.test(rules), 'English header and rules', rules.slice(0, 80));
+  check(/### #\d+ 🗑 Delete text\n- Original: `그리고 이것은 매우 중요합니다\.`/.test(md), 'English item with the original Korean text', md.slice(0, 300));
+  check(/### #\d+ 📐 Layout change · element `<div>`[\s\S]*- Now: .* of the slide/.test(md), 'English layout instructions');
+  check(/## When you are done/.test(md), 'English closing instructions');
+  await sleep(300);
+  check((await $.shadowAll('.toast')).some((t) => /Sent edit request round 1/.test(t)), 'sent toast in English');
+  cli('done', file, '--reply', 'Applied');
+  check(errors.length === 0, 'no page errors', errors);
+
+  title('redpen open --lang ko restarts the server on the same address and the open tab reloads in Korean');
+  const out2 = cli('open', file, '--no-open', '--lang', 'ko');
+  const url2 = /(http:\/\/localhost:\d+\/\S+)/.exec(out2)?.[1];
+  check(url2 === url && /빨간펜 리뷰 화면을 열었습니다/.test(out2), 'same URL, new server', out2);
+  const switched = await page.waitForFunction(
+    () => document.getElementById('__redpen-host')?.shadowRoot?.querySelector('.tb[data-mode="element"]')?.textContent.includes('레이아웃'),
+    { timeout: 10000 },
+  ).then(() => true, () => false);
+  check(switched, 'the open tab switched to Korean by itself');
+  await sleep(300);
+  check((await $.shadowAll('.toast')).some((t) => t.includes('화면 언어를 바꿨어요')), 'toast "화면 언어를 바꿨어요"');
+  const real = errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+  check(real.length === 0, 'no page errors besides the restart gap', real);
+  await page.close();
+}
+
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: process.env.HEADFUL ? false : 'new',
@@ -894,6 +977,7 @@ try {
   await edgeDeck(browser);
   await layoutDeck(browser);
   await switchDeck(browser);
+  await englishDeck(browser);
 } catch (err) {
   failures++;
   console.error(`\n💥 ${err.stack || err}`);

@@ -10,11 +10,12 @@ HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·�
   3. `git push` — origin은 비공개 저장소 `WoosopYi/html-redesign`, 기본 브랜치 `main`.
 - 푸시는 이 저장소의 로컬 credential helper가 WoosopYi 계정 토큰을 쓰도록 설정돼 있다. `gh auth switch`로 전역 계정을 바꾸지 않는다. gh API가 필요하면 `GH_TOKEN=$(gh auth token --user WoosopYi) gh …`.
 - 사용자의 실제 덱(예: `~/orca/projects/education/…`)은 직접 수정하지 않는다. 확인은 `/tmp`에 복사해서 한다.
-- UI·프롬프트 문구는 한국어. 브라우저 코드는 의존성 없는 ES 모듈로 유지한다.
+- UI·CLI·프롬프트 문구는 한국어로 쓰고 `tr('한국어 원문', { 자리값 })`으로 감싼 뒤, 같은 문장을 키로 `src/client/i18n/en.js`에 영어를 넣는다 (빠지면 `test/unit/i18n.test.mjs`가 잡는다). 긴 글은 `pick({ ko, en })`. 브라우저 코드는 의존성 없는 ES 모듈로 유지한다.
 
 ## 구조
 
 - `src/cli.mjs` 명령(open/wait/pending/done/status/stop/setup) · `src/server.mjs` 로컬 서버(127.0.0.1, Host·Origin·Sec-Fetch 검사, SSE) · `src/store.mjs` 파일 상태(`<덱 폴더>/.redpen/`) · `src/locate.mjs` 화면 문구 → 소스 `파일:행` · `src/prompt.mjs` AI가 받는 프롬프트
+- 언어: `src/client/i18n/`(tr·en.js — 브라우저·CLI·프롬프트 공용) · `src/lang.mjs` `--lang`/`REDPEN_LANG`/시스템 언어 결정. 서버가 언어를 정해 화면(config.js)에 알리고, 보낸 수정 요청(round)마다 언어를 기록한다
 - `src/client/` 브라우저 오버레이(UI는 shadow DOM)
   - `interact.js` 입력 처리(덱 단축키·클릭과 충돌 방지) · `actions.js` 표시 생성·편집·전송 · `state.js` 상태·되돌리기·자동 저장
   - `layout.js` 레이아웃 모드: 이동·순서·크기·글자/간격/여백/방향/열 — 덱에 인라인 스타일로 미리보기하고 정확히 원상복구

@@ -9,7 +9,7 @@ import { Store } from '../../src/store.mjs';
 
 const BIN = fileURLToPath(new URL('../../bin/redpen.mjs', import.meta.url));
 const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'redpen-home-'));
-const env = { ...process.env, REDPEN_HOME: HOME };
+const env = { ...process.env, REDPEN_HOME: HOME, REDPEN_LANG: 'ko' };
 const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'redpen-cli-')));
 const deck = path.join(dir, 'index.html');
 fs.writeFileSync(deck, '<html><head></head><body><section class="slide">하나</section><section class="slide">둘</section></body></html>');

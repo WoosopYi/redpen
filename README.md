@@ -156,7 +156,7 @@ redpen slides/index.html        # 폴더를 줘도 됩니다: redpen slides/
 
 | 명령 | 설명 |
 |---|---|
-| `redpen <html>` / `redpen open <html>` | 리뷰 화면 열기 (`--port`, `--slide <선택자>`, `--no-open`) |
+| `redpen <html>` / `redpen open <html>` | 리뷰 화면 열기 (`--port`, `--slide <선택자>`, `--lang ko\|en`, `--no-open`) |
 | `redpen wait [html] [--reply "…"] [--timeout 초]` | (AI용) 보낼 때까지 기다렸다가 수정 요청 출력. `--reply`는 이전 차수에 대한 답장 |
 | `redpen pending [html]` | (AI용) 대기 중인 수정 요청 출력 |
 | `redpen done [html] --reply "…"` | (AI용) 결과를 브라우저에 알리고 대기 종료 |
@@ -165,6 +165,15 @@ redpen slides/index.html        # 폴더를 줘도 됩니다: redpen slides/
 | `redpen setup [--claude] [--codex] [--remove]` | 명령 연결 + 스킬 설치/제거 |
 
 `html`을 생략하면 마지막으로 연 파일을 씁니다. `wait`의 종료 코드: 0 = 수정 요청 받음, 2 = `--timeout` 시간 초과.
+
+### 언어 (한국어 / English)
+
+화면·AI가 받는 수정 요청·명령 출력을 한국어나 영어로 쓸 수 있습니다. 기본은 컴퓨터의 언어 설정(macOS는 시스템 언어)을 따르고, 직접 고르려면:
+
+- `redpen open deck.html --lang en` — 이미 열려 있으면 같은 주소로 다시 시작하고, 열린 탭도 그 언어로 바뀝니다
+- 환경 변수 `REDPEN_LANG=en` (또는 `ko`) — 모든 명령에 적용
+
+수정 요청은 보낸 화면의 언어로 전달됩니다. 덱 안의 글은 쓰인 그대로 옮깁니다.
 
 ## 저장 위치
 

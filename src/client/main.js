@@ -11,7 +11,7 @@ import { popoverDirty } from './ui/popover.js';
 import { toast, banner, hideBanner, statusBanner, modalOpen } from './ui/feedback.js';
 import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, goToSlide, slideTitle } from './slides.js';
 import { h, rich } from './util.js';
-import { tr } from './i18n/index.js';
+import { tr, setLang } from './i18n/index.js';
 import * as L from './layout.js';
 import { initSketch, openSketch, sketchOpen } from './sketch.js';
 
@@ -57,6 +57,7 @@ function restorePosition() {
   }, 120);
   if (pos.reason === 'html') toast(tr('🔄 HTML이 바뀌어서 새로고침했어요'), { ms: 2200 });
   if (pos.reason === 'tool') toast(tr('✨ 빨간펜이 새 버전으로 바뀌어서 새로고침했어요'), { ms: 3000 });
+  if (pos.reason === 'lang') toast(tr('🌐 화면 언어를 바꿨어요'), { ms: 2200 });
 }
 
 let reloadPending = false;
@@ -81,18 +82,25 @@ function onFilesChanged() {
   reloadNow('html');
 }
 
-/** The tab runs older tool code than the server now serves (updated + restarted): reload to get it. */
+/**
+ * The tab runs older tool code than the server now serves (updated + restarted), or the server was
+ * restarted in another language (`redpen open --lang`): reload to get it.
+ */
 let toolUpdatePending = false;
-function checkBuild(build) {
-  if (!build || !config.build || build === config.build || reloading) return;
+function checkBuild(build, lang) {
+  if (reloading) return;
+  const reason = lang && config.lang && lang !== config.lang ? 'lang'
+    : build && config.build && build !== config.build ? 'tool' : null;
+  if (!reason) return;
   if (popoverDirty() || modalOpen() || sketchOpen() || L.dragging()) {
     if (!toolUpdatePending) {
       toolUpdatePending = true;
-      banner(tr('빨간펜이 새 버전으로 바뀌었어요'), [{ label: tr('새로고침'), primary: true, run: () => reloadNow('tool') }]);
+      const msg = reason === 'lang' ? tr('화면 언어가 바뀌었어요') : tr('빨간펜이 새 버전으로 바뀌었어요');
+      banner(msg, [{ label: tr('새로고침'), primary: true, run: () => reloadNow(reason) }]);
     }
     return;
   }
-  reloadNow('tool');
+  reloadNow(reason);
 }
 
 function onboard() {
@@ -117,6 +125,7 @@ function onboard() {
 async function init() {
   if (window.__redpenStarted) return;
   window.__redpenStarted = true;
+  setLang(config.lang); // before any UI is built
 
   mountRoot();
   const toolbar = mountToolbar(A);
@@ -220,7 +229,7 @@ async function init() {
   api.connect({
     state: (st) => {
       A.onState(st);
-      checkBuild(st.build);
+      checkBuild(st.build, st.lang);
     },
     draft: (d) => {
       if (d.clientId !== clientId) A.onRemoteDraft(d);

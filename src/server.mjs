@@ -7,7 +7,7 @@ import { loadSources, annotate } from './locate.mjs';
 import { renderRounds } from './prompt.mjs';
 import { readJSON } from './util.mjs';
 import { itemSummary } from './client/summary.js';
-import { tr } from './client/i18n/index.js';
+import { tr, setLang } from './client/i18n/index.js';
 
 const CLIENT_DIR = fileURLToPath(new URL('./client/', import.meta.url));
 export const VERSION = readJSON(fileURLToPath(new URL('../package.json', import.meta.url)), {})?.version || '0.0.0';
@@ -142,7 +142,8 @@ function listen(server, port, host, tries = 40) {
  * Serve one deck with the review overlay injected, plus the small API the overlay talks to.
  * Binds to 127.0.0.1 only and rejects foreign Host/Origin headers (DNS rebinding, cross-site writes).
  */
-export async function startServer({ deckPath, port = 4545, idleMinutes = 120, log = () => {} }) {
+export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lang = 'ko', log = () => {} }) {
+  setLang(lang); // server messages and list summaries; each round also records it for its prompt
   const store = new Store(deckPath).ensure();
   const root = store.deckDir;
   const deckName = store.deckName;
@@ -219,7 +220,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
 
   function computeState() {
     const rounds = store.rounds();
-    return { rounds: rounds.map(summarize), agent: agentStatus(rounds), build: clientBuild() };
+    return { rounds: rounds.map(summarize), agent: agentStatus(rounds), build: clientBuild(), lang };
   }
 
   function pushState(force = false) {
@@ -258,7 +259,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
   }
 
   async function internal(req, res, route, u) {
-    if (route === 'ping') return sendJSON(res, 200, { ok: true, deckPath: store.deckPath, pid: process.pid, version: VERSION });
+    if (route === 'ping') return sendJSON(res, 200, { ok: true, deckPath: store.deckPath, pid: process.pid, version: VERSION, lang });
 
     if (route === 'app/config.js') {
       const cfg = {
@@ -267,6 +268,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
         slideSelector: store.readSettings().slideSelector || null,
         version: VERSION,
         build: clientBuild(),
+        lang,
       };
       return send(res, 200, `export default ${JSON.stringify(cfg)};\n`, { 'Content-Type': MIME['.js'] });
     }
@@ -347,6 +349,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
         deckComment,
         items,
         slideSources,
+        lang,
       }, { claimVia: channel === 'clipboard' ? 'clipboard' : null });
       store.writeRoundMarkdown(round.round, renderRounds([round], { channel: 'file' }));
       store.writeDraft({ items: [], deckComment: '' });

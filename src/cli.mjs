@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.mjs';
 import { renderRounds } from './prompt.mjs';
 import { readJSON, writeJSON, isAlive, sleep, openBrowser } from './util.mjs';
-import { tr, pick } from './client/i18n/index.js';
+import { tr, pick, setLang } from './client/i18n/index.js';
+import { explicitLang, systemLang } from './lang.mjs';
 
 const BIN = fileURLToPath(new URL('../bin/redpen.mjs', import.meta.url));
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -24,7 +25,7 @@ const HELP = {
 
 사용법
   redpen <html>                       리뷰 화면 열기 (= redpen open)
-  redpen open <html> [--port 4545] [--slide ".slide"] [--no-open]
+  redpen open <html> [--port 4545] [--slide ".slide"] [--lang ko|en] [--no-open]
   redpen wait [html] [--reply "…"] [--timeout 초]
                                       (AI용) 브라우저에서 보낼 때까지 기다렸다가 수정 요청 출력
   redpen pending [html]               (AI용) 대기 중인 수정 요청 출력
@@ -35,7 +36,29 @@ const HELP = {
                                       Claude Code·Codex에 redpen 스킬 설치
 
 html을 생략하면 마지막으로 연 파일을 사용합니다. 폴더를 주면 그 안의 index.html을 엽니다.
---slide 로 슬라이드 요소 선택자를 직접 지정할 수 있습니다 (자동 감지가 틀릴 때).`,
+--slide 로 슬라이드 요소 선택자를 직접 지정할 수 있습니다 (자동 감지가 틀릴 때).
+--lang (또는 환경 변수 REDPEN_LANG) 으로 화면과 수정 요청의 언어를 고릅니다: ko 또는 en (기본: 시스템 언어).`,
+  en: `✒️  redpen — a red pen for HTML slides
+
+Mark what to fix (delete · replace · comment) right on the HTML in your browser, and it reaches
+your AI session as an edit request with slide numbers, original text, context and source locations.
+
+Usage
+  redpen <html>                       open the review page (= redpen open)
+  redpen open <html> [--port 4545] [--slide ".slide"] [--lang ko|en] [--no-open]
+  redpen wait [html] [--reply "…"] [--timeout sec]
+                                      (for the AI) wait until the browser sends, then print the edit request
+  redpen pending [html]               (for the AI) print pending edit requests
+  redpen done [html] --reply "…"      (for the AI) report the result to the browser and stop waiting
+  redpen status [html]                show the status
+  redpen stop [html]                  stop the review server
+  redpen setup [--claude] [--codex] [--remove]
+                                      install the redpen skill for Claude Code and Codex
+
+Without html, the file you opened last is used. Given a folder, its index.html is opened.
+--slide sets the slide element selector yourself (when auto-detection gets it wrong).
+--lang (or the REDPEN_LANG environment variable) picks the language of the page and the edit requests:
+ko or en (default: your system language).`,
 };
 
 const out = (s = '') => process.stdout.write(`${s}\n`);
@@ -117,15 +140,34 @@ async function runningServer(store) {
   const s = store.readServer();
   if (!s || !isAlive(s.pid)) return null;
   const info = await ping(s.port);
-  return info && info.deckPath === store.deckPath ? s : null;
+  return info && info.deckPath === store.deckPath ? { ...s, lang: info.lang || 'ko' } : null;
 }
 
-async function ensureServer(store, { port } = {}) {
+async function stopServer(s) {
+  try {
+    process.kill(s.pid, 'SIGTERM');
+  } catch {
+    /* already gone */
+  }
+  for (let i = 0; i < 50 && isAlive(s.pid); i++) await sleep(100);
+}
+
+/**
+ * Reuse the deck's running server, or start one. `lang` is a language asked for on purpose: with
+ * `restart`, a server running in another language is replaced on the same port (open tabs reconnect
+ * and reload in the new language); a new server gets it, or the system language.
+ */
+async function ensureServer(store, { port, lang = null, restart = false } = {}) {
   let s = await runningServer(store);
+  if (s && restart && lang && s.lang !== lang) {
+    port = port || s.port;
+    await stopServer(s);
+    s = null;
+  }
   if (s) return { ...s, started: false };
   store.clearServer();
   const logFd = fs.openSync(store.file('server.log'), 'a');
-  const args = [BIN, 'serve', store.deckPath];
+  const args = [BIN, 'serve', store.deckPath, '--lang', lang || systemLang()];
   if (port) args.push('--port', String(port));
   const child = spawn(process.execPath, args, { cwd: store.deckDir, detached: true, stdio: ['ignore', logFd, logFd] });
   child.unref();
@@ -161,7 +203,7 @@ async function cmdOpen(pos, flags) {
   const deckPath = resolveDeck(pos[0]);
   const store = new Store(deckPath).ensure();
   if (typeof flags.slide === 'string') store.writeSettings({ slideSelector: flags.slide.trim() || null });
-  const s = await ensureServer(store, { port: flags.port });
+  const s = await ensureServer(store, { port: flags.port, lang: flags.lang, restart: true });
   writeJSON(LAST, { deckPath, at: Date.now() });
   if (!flags['no-open']) openBrowser(s.url);
   out(`✒️  ${tr(s.started ? '빨간펜 리뷰 화면을 열었습니다: {url}' : '빨간펜 리뷰 화면이 이미 실행 중입니다: {url}', { url: s.url })}`);
@@ -179,6 +221,7 @@ async function cmdServe(pos, flags) {
     deckPath,
     port: flags.port !== undefined ? Number(flags.port) : 4545,
     idleMinutes: flags.idle !== undefined ? Number(flags.idle) : 120,
+    lang: flags.lang || systemLang(),
     log,
   });
   const stop = () => {
@@ -201,7 +244,7 @@ async function cmdWait(pos, flags) {
 
   let server = null;
   try {
-    server = await ensureServer(store);
+    server = await ensureServer(store, { lang: flags.lang });
   } catch (e) {
     err(e.message);
   }
@@ -380,6 +423,8 @@ async function cmdSetup(_pos, flags) {
 
 export async function main(argv) {
   const { cmd, pos, flags } = parse(argv);
+  flags.lang = explicitLang(flags.lang); // --lang / REDPEN_LANG, or null
+  setLang(flags.lang || systemLang());
   if (flags.help && cmd !== 'help') return out(pick(HELP));
   switch (cmd) {
     case 'open': return cmdOpen(pos, flags);
