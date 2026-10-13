@@ -1,9 +1,10 @@
 import { ui } from './root.js';
-import { S, ordered, numbering, TYPE_LABEL } from '../state.js';
+import { S, ordered, numbering, TYPE_LABEL, TARGET_LABEL } from '../state.js';
 import { slideOf, slideVisible, slideOpacity } from '../slides.js';
 import { h, clamp, trunc } from '../util.js';
 import { icon } from '../icons.js';
 import { itemSummary } from '../summary.js';
+import { tr } from '../i18n/index.js';
 
 /*
  * Everything drawn over the deck: numbered pins, element/region/slide boxes, the floating selection
@@ -105,9 +106,9 @@ function selButton(kind, ico, label, key) {
 export function showSelBar(range, onAction) {
   if (!selBar) {
     selBar = h('div', { class: 'selbar' },
-      selButton('delete', 'trash', '삭제', 'D'),
-      selButton('replace', 'edit', '수정', 'R'),
-      selButton('comment', 'comment', '코멘트', 'C'));
+      selButton('delete', 'trash', tr('삭제'), 'D'),
+      selButton('replace', 'edit', tr('수정'), 'R'),
+      selButton('comment', 'comment', tr('코멘트'), 'C'));
     ui.app.append(selBar);
   }
   sel = { range, onAction };
@@ -208,7 +209,7 @@ const size = (el, r) => {
 };
 
 function cardText(it) {
-  const k = `${TYPE_LABEL[it.type]}${it.target === 'text' ? '' : ` · ${{ element: '요소', region: '영역', slide: '슬라이드', sketch: '스케치' }[it.target]}`}`;
+  const k = `${tr(TYPE_LABEL[it.type])}${it.target === 'text' ? '' : ` · ${tr(TARGET_LABEL[it.target])}`}`;
   const parts = [h('span', { class: 'k' }, k)];
   if (it.type === 'layout') {
     parts.push(itemSummary(it));
@@ -301,7 +302,7 @@ function renderFrame() {
         ui.layer.insertBefore(n.box, ui.layer.firstChild);
       }
       n.box.className = `box ${it.target} ${t}${focus ? ' focus' : ''}`;
-      if (it.target === 'slide' && !n.box.firstChild) n.box.append(h('span', { class: 'tag' }, '슬라이드 삭제'));
+      if (it.target === 'slide' && !n.box.firstChild) n.box.append(h('span', { class: 'tag' }, tr('슬라이드 삭제')));
       n.box.style.display = '';
       fade(n.box, op);
       size(n.box, g.box);
@@ -310,7 +311,7 @@ function renderFrame() {
     // chip: replacement preview, or the slide comment
     const chipText = it.type === 'replace' ? it.replacement
       : it.target === 'slide' && it.type === 'comment' ? it.comment
-        : it.target === 'slide' && it.move ? `${it.move.to + 1}번째로 옮기기` : null;
+        : it.target === 'slide' && it.move ? tr('{n}번째로 옮기기', { n: it.move.to + 1 }) : null;
     const roomy = !it._slide || it._slide === document.body || it._slide.getBoundingClientRect().width > 480;
     if (chipText != null && roomy) {
       if (!n.chip) {
@@ -318,7 +319,7 @@ function renderFrame() {
         ui.layer.append(n.chip);
       }
       n.chip.className = `chip ${t}`;
-      n.chip.replaceChildren(h('span', { class: 'arrow' }, it.type === 'replace' || it.move ? '→' : '💬'), trunc(chipText, 60) || '(빈칸)');
+      n.chip.replaceChildren(h('span', { class: 'arrow' }, it.type === 'replace' || it.move ? '→' : '💬'), trunc(chipText, 60) || tr('(빈칸)'));
       n.chip.style.display = '';
       fade(n.chip, op);
       place(n.chip, Math.min(px + 24, innerWidth - 120), py);
@@ -365,7 +366,7 @@ function renderFrame() {
     size(hoverBox, r);
     const cls = [...target.classList].filter((c) => !/^(is-|has-)/.test(c)).slice(0, 2).join('.');
     const isSlide = handlers.isSlide?.(target);
-    hoverLabel.textContent = isSlide ? `슬라이드 전체 · ${Math.round(r.width)}×${Math.round(r.height)}`
+    hoverLabel.textContent = isSlide ? `${tr('슬라이드 전체')} · ${Math.round(r.width)}×${Math.round(r.height)}`
       : `${target.localName}${target.id ? `#${target.id}` : ''}${cls ? `.${cls}` : ''} · ${Math.round(r.width)}×${Math.round(r.height)}`;
     hoverLabel.style.display = '';
     place(hoverLabel, clamp(r.left, 4, innerWidth - hoverLabel.offsetWidth - 4), r.top - 22 >= 4 ? r.top - 22 : r.bottom + 4);

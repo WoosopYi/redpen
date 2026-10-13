@@ -1,6 +1,7 @@
 import { ui } from './root.js';
 import { h } from '../util.js';
 import { icon } from '../icons.js';
+import { tr } from '../i18n/index.js';
 
 // ---- toasts -------------------------------------------------------------------
 
@@ -31,7 +32,7 @@ export function toast(message, { kind = 'info', ms = 2600, action = null, ico = 
 const modals = [];
 
 /** actions: [{ label, primary?, red?, icon?, run?: () => (true to keep open) }] */
-export function modal({ title, body, actions = [{ label: '닫기', primary: true }], width = 480, ico = null }) {
+export function modal({ title, body, actions = [{ label: tr('닫기'), primary: true }], width = 480, ico = null }) {
   const close = () => {
     back.remove();
     const i = modals.indexOf(close);
@@ -58,13 +59,13 @@ export function modal({ title, body, actions = [{ label: '닫기', primary: true
 export const modalOpen = () => modals.length > 0;
 export const closeTopModal = () => modals.at(-1)?.();
 
-export function confirmDialog(title, message, okLabel = '확인') {
+export function confirmDialog(title, message, okLabel = tr('확인')) {
   return new Promise((resolve) => {
     modal({
       title,
       body: h('p', null, message),
       actions: [
-        { label: '취소', run: () => resolve(false) },
+        { label: tr('취소'), run: () => resolve(false) },
         { label: okLabel, red: true, run: () => resolve(true) },
       ],
       width: 400,

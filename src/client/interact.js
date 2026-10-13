@@ -8,6 +8,7 @@ import { modalOpen, closeTopModal } from './ui/feedback.js';
 import { isEditable, clamp } from './util.js';
 import * as L from './layout.js';
 import { sketchOpen, sketchKey } from './sketch.js';
+import { tr } from './i18n/index.js';
 
 /*
  * Window-level (capture phase) input handling. Registered before the deck's own scripts run, so we
@@ -257,7 +258,7 @@ function onPointerDown(e) {
     if (e.button !== 0) return;
     const slideEl = slideAt(e.clientX, e.clientY);
     if (!slideEl) {
-      A.notify('슬라이드 위에서 드래그해 주세요', 'warn');
+      A.notify(tr('슬라이드 위에서 드래그해 주세요'), 'warn');
       return;
     }
     region = { slideEl, x0: e.clientX, y0: e.clientY, x1: e.clientX, y1: e.clientY };

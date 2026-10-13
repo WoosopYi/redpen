@@ -1,5 +1,6 @@
 import { getSlides, slideOf, slideTitle } from './slides.js';
 import { norm, clamp } from './util.js';
+import { where } from './summary.js';
 
 /*
  * Anchoring: turn a live DOM selection into data that survives reloads (exact text + context +
@@ -359,16 +360,7 @@ export function anchorElement(item) {
 
 // ---- regions ---------------------------------------------------------------------
 
-export function whereLabel({ x, y, w, h }) {
-  const cx = x + w / 2;
-  const cy = y + h / 2;
-  const H = cx < 0.36 ? '왼쪽' : cx > 0.64 ? '오른쪽' : '가운데';
-  const V = cy < 0.36 ? '위' : cy > 0.64 ? '아래' : '가운데';
-  if (H === '가운데' && V === '가운데') return '가운데';
-  if (H === '가운데') return V === '위' ? '위쪽 가운데' : '아래쪽 가운데';
-  if (V === '가운데') return `${H} 가운데`;
-  return `${H} ${V}`;
-}
+export const whereLabel = where;
 
 const MEDIA = /^(img|video|svg|canvas|table|picture|iframe)$/;
 

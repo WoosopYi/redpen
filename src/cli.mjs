@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.mjs';
 import { renderRounds } from './prompt.mjs';
 import { readJSON, writeJSON, isAlive, sleep, openBrowser } from './util.mjs';
+import { tr, pick } from './client/i18n/index.js';
 
 const BIN = fileURLToPath(new URL('../bin/redpen.mjs', import.meta.url));
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -15,7 +16,8 @@ const LAST = path.join(process.env.REDPEN_HOME || path.join(os.homedir(), '.redp
 const COMMANDS = new Set(['open', 'serve', 'wait', 'pending', 'done', 'status', 'stop', 'setup', 'help', 'version']);
 const BOOLEAN_FLAGS = new Set(['no-open', 'help', 'version', 'claude', 'codex', 'remove', 'json', 'quiet']);
 
-const HELP = `✒️  redpen — HTML 슬라이드 빨간펜 리뷰
+const HELP = {
+  ko: `✒️  redpen — HTML 슬라이드 빨간펜 리뷰
 
 브라우저에서 HTML 위에 직접 고칠 곳(삭제·수정·코멘트)을 표시하면,
 슬라이드 번호·원문·문맥·소스 위치가 담긴 수정 요청으로 AI 세션에 전달합니다.
@@ -33,7 +35,8 @@ const HELP = `✒️  redpen — HTML 슬라이드 빨간펜 리뷰
                                       Claude Code·Codex에 redpen 스킬 설치
 
 html을 생략하면 마지막으로 연 파일을 사용합니다. 폴더를 주면 그 안의 index.html을 엽니다.
---slide 로 슬라이드 요소 선택자를 직접 지정할 수 있습니다 (자동 감지가 틀릴 때).`;
+--slide 로 슬라이드 요소 선택자를 직접 지정할 수 있습니다 (자동 감지가 틀릴 때).`,
+};
 
 const out = (s = '') => process.stdout.write(`${s}\n`);
 const err = (s = '') => process.stderr.write(`${s}\n`);
@@ -70,18 +73,18 @@ function resolveDeck(arg) {
   if (!p) {
     const last = readJSON(LAST, null);
     if (last?.deckPath && fs.existsSync(last.deckPath)) p = last.deckPath;
-    else throw new Error('HTML 파일 경로를 지정하세요. 예) redpen open slides/index.html');
+    else throw new Error(tr('HTML 파일 경로를 지정하세요. 예) redpen open slides/index.html'));
   }
   let abs = path.resolve(p);
   let st;
   try {
     st = fs.statSync(abs);
   } catch {
-    throw new Error(`파일을 찾을 수 없습니다: ${abs}`);
+    throw new Error(tr('파일을 찾을 수 없습니다: {path}', { path: abs }));
   }
   if (st.isDirectory()) {
     abs = path.join(abs, 'index.html');
-    if (!fs.existsSync(abs)) throw new Error(`폴더에 index.html이 없습니다: ${path.dirname(abs)}`);
+    if (!fs.existsSync(abs)) throw new Error(tr('폴더에 index.html이 없습니다: {path}', { path: path.dirname(abs) }));
   }
   return fs.realpathSync(abs);
 }
@@ -134,7 +137,7 @@ async function ensureServer(store, { port } = {}) {
     s = await runningServer(store);
     if (s) return { ...s, started: true };
   }
-  throw new Error(`리뷰 서버를 시작하지 못했습니다. 로그: ${store.file('server.log')}`);
+  throw new Error(tr('리뷰 서버를 시작하지 못했습니다. 로그: {path}', { path: store.file('server.log') }));
 }
 
 /** Take every round nobody has picked up yet (exactly-once across concurrent waiters). */
@@ -161,11 +164,11 @@ async function cmdOpen(pos, flags) {
   const s = await ensureServer(store, { port: flags.port });
   writeJSON(LAST, { deckPath, at: Date.now() });
   if (!flags['no-open']) openBrowser(s.url);
-  out(`✒️  빨간펜 리뷰 화면${s.started ? '을 열었습니다' : '이 이미 실행 중입니다'}: ${s.url}`);
-  out(`   대상: ${deckPath}`);
+  out(`✒️  ${tr(s.started ? '빨간펜 리뷰 화면을 열었습니다: {url}' : '빨간펜 리뷰 화면이 이미 실행 중입니다: {url}', { url: s.url })}`);
+  out(`   ${tr('대상: {path}', { path: deckPath })}`);
   out('');
-  out('브라우저에서 고칠 곳을 표시하고 [AI에게 보내기]를 누르세요.');
-  out(`AI 에이전트는 이 명령으로 수정 요청을 받습니다:  redpen wait ${q(deckPath)}`);
+  out(tr('브라우저에서 고칠 곳을 표시하고 [AI에게 보내기]를 누르세요.'));
+  out(tr('AI 에이전트는 이 명령으로 수정 요청을 받습니다:  {cmd}', { cmd: `redpen wait ${q(deckPath)}` }));
 }
 
 async function cmdServe(pos, flags) {
@@ -212,13 +215,13 @@ async function cmdWait(pos, flags) {
     });
   }
 
-  err(`⏳ 브라우저에서 [AI에게 보내기]를 누를 때까지 기다립니다${server ? ` — ${server.url}` : ''}`);
+  err(`⏳ ${tr('브라우저에서 [AI에게 보내기]를 누를 때까지 기다립니다')}${server ? ` — ${server.url}` : ''}`);
   const deadline = timeout ? startedAt + timeout * 1000 : Infinity;
   for (;;) {
     // The newest waiter wins: a leftover `redpen wait` (e.g. from an old session) must not take the next round.
     const current = readJSON(store.file('agent.json'), null);
     if (current && current.pid !== process.pid && isAlive(current.pid) && current.since >= startedAt) {
-      await write('다른 redpen wait가 대기를 이어받아 이 대기는 끝냅니다.\n');
+      await write(`${tr('다른 redpen wait가 대기를 이어받아 이 대기는 끝냅니다.')}\n`);
       process.exit(0);
     }
     if (!current) store.writeAgent({ pid: process.pid, since: startedAt });
@@ -232,12 +235,12 @@ async function cmdWait(pos, flags) {
     if (stop && stop > startedAt) {
       fs.rmSync(stopFile, { force: true });
       cleanup();
-      await write('리뷰를 마쳤습니다 (redpen done). 더 기다리지 않습니다.\n');
+      await write(`${tr('리뷰를 마쳤습니다 (redpen done). 더 기다리지 않습니다.')}\n`);
       process.exit(0);
     }
     if (Date.now() > deadline) {
       cleanup();
-      await write(`(시간 초과) ${timeout}초 동안 새 수정 요청이 없었습니다. 계속 기다리려면 다시 실행하세요:\nredpen wait ${q(deckPath)}\n`);
+      await write(`${tr('(시간 초과) {n}초 동안 새 수정 요청이 없었습니다. 계속 기다리려면 다시 실행하세요:', { n: timeout })}\nredpen wait ${q(deckPath)}\n`);
       process.exit(2);
     }
     await sleep(500);
@@ -251,8 +254,8 @@ async function cmdPending(pos) {
   const freshIds = new Set(fresh.map((r) => r.round));
   const rounds = [...store.inProgress().filter((r) => !freshIds.has(r.round)), ...fresh].sort((a, b) => a.round - b.round);
   if (!rounds.length) {
-    out('대기 중인 수정 요청이 없습니다. 브라우저에서 [AI에게 보내기]를 누르면 여기에 나타납니다.');
-    if (!(await runningServer(store))) out(`리뷰 화면이 꺼져 있습니다. 열기: redpen open ${q(deckPath)}`);
+    out(tr('대기 중인 수정 요청이 없습니다. 브라우저에서 [AI에게 보내기]를 누르면 여기에 나타납니다.'));
+    if (!(await runningServer(store))) out(tr('리뷰 화면이 꺼져 있습니다. 열기: {cmd}', { cmd: `redpen open ${q(deckPath)}` }));
     return;
   }
   await write(renderRounds(rounds, { channel: 'pending' }));
@@ -261,12 +264,12 @@ async function cmdPending(pos) {
 async function cmdDone(pos, flags) {
   const deckPath = resolveDeck(pos[0]);
   const store = new Store(deckPath).ensure();
-  const message = (typeof flags.reply === 'string' && flags.reply.trim()) || pos.slice(1).join(' ').trim() || '반영을 마쳤습니다.';
+  const message = (typeof flags.reply === 'string' && flags.reply.trim()) || pos.slice(1).join(' ').trim() || tr('반영을 마쳤습니다.');
   const rounds = reply(store, message);
   if (store.readAgent()) writeJSON(store.file('stop'), Date.now());
   out(rounds.length
-    ? `✅ ${rounds.map((n) => `${n}차`).join(', ')} 수정 요청에 결과를 남겼습니다. 브라우저에 표시됩니다.`
-    : '남길 수정 요청이 없습니다 (아직 보낸 적이 없음).');
+    ? `✅ ${tr('{rounds} 수정 요청에 결과를 남겼습니다. 브라우저에 표시됩니다.', { rounds: rounds.map((n) => tr('{n}차', { n })).join(', ') })}`
+    : tr('남길 수정 요청이 없습니다 (아직 보낸 적이 없음).'));
 }
 
 async function cmdStatus(pos, flags) {
@@ -286,15 +289,15 @@ async function cmdStatus(pos, flags) {
     }, null, 2));
     return;
   }
-  out(`대상: ${deckPath}`);
-  out(`리뷰 화면: ${server ? server.url : '꺼짐'}`);
-  out(`AI 대기: ${agent ? `예 (pid ${agent.pid})` : '아니오'}`);
-  out(`작성 중인 표시: ${draft.items.length}개${draft.deckComment ? ' + 전체 지시' : ''}`);
+  out(tr('대상: {path}', { path: deckPath }));
+  out(tr('리뷰 화면: {url}', { url: server ? server.url : tr('꺼짐') }));
+  out(tr('AI 대기: {state}', { state: agent ? tr('예 (pid {pid})', { pid: agent.pid }) : tr('아니오') }));
+  out(`${tr('작성 중인 표시: {n}개', { n: draft.items.length })}${draft.deckComment ? ` + ${tr('전체 지시')}` : ''}`);
   if (!rounds.length) return;
-  out('보낸 수정 요청:');
+  out(tr('보낸 수정 요청:'));
   for (const r of rounds.slice(-8)) {
-    const state = r.replies.length ? '반영 완료' : r.delivered ? (r.delivered.via === 'clipboard' ? '복사됨' : 'AI가 받음') : '전달 대기';
-    out(`  ${r.round}차 · ${r.items.length}개 · ${state}${r.replies.length ? ` — ${r.replies.at(-1).message.slice(0, 60)}` : ''}`);
+    const state = tr(r.replies.length ? '반영 완료' : r.delivered ? (r.delivered.via === 'clipboard' ? '복사됨' : 'AI가 받음') : '전달 대기');
+    out(`  ${tr('{n}차', { n: r.round })} · ${tr('{n}개', { n: r.items.length })} · ${state}${r.replies.length ? ` — ${r.replies.at(-1).message.slice(0, 60)}` : ''}`);
   }
 }
 
@@ -305,9 +308,9 @@ async function cmdStop(pos) {
   const s = await runningServer(store);
   if (s) {
     process.kill(s.pid, 'SIGTERM');
-    out('리뷰 서버를 종료했습니다.');
+    out(tr('리뷰 서버를 종료했습니다.'));
   } else {
-    out('실행 중인 리뷰 서버가 없습니다.');
+    out(tr('실행 중인 리뷰 서버가 없습니다.'));
   }
   store.clearServer();
 }
@@ -333,7 +336,7 @@ async function cmdSetup(_pos, flags) {
   if (flags.remove) {
     for (const [name, dir] of targets) {
       fs.rmSync(dir, { recursive: true, force: true });
-      out(`🗑  ${name} 스킬 제거: ${dir}`);
+      out(`🗑  ${tr('{name} 스킬 제거: {path}', { name, path: dir })}`);
     }
     const link = path.join(home, '.local', 'bin', 'redpen');
     let linked = null;
@@ -344,7 +347,7 @@ async function cmdSetup(_pos, flags) {
     }
     if (linked && path.resolve(path.dirname(link), linked) === BIN) {
       fs.rmSync(link, { force: true });
-      out(`🗑  redpen 명령 연결 제거: ${link}`);
+      out(`🗑  ${tr('redpen 명령 연결 제거: {path}', { path: link })}`);
     }
     return;
   }
@@ -353,7 +356,7 @@ async function cmdSetup(_pos, flags) {
   for (const [name, dir] of targets) {
     fs.mkdirSync(dir, { recursive: true });
     fs.copyFileSync(skill, path.join(dir, 'SKILL.md'));
-    out(`✅ ${name} 스킬 설치: ${path.join(dir, 'SKILL.md')}`);
+    out(`✅ ${tr('{name} 스킬 설치: {path}', { name, path: path.join(dir, 'SKILL.md') })}`);
   }
 
   if (!onPath('redpen')) {
@@ -365,19 +368,19 @@ async function cmdSetup(_pos, flags) {
       fs.rmSync(link, { force: true });
       fs.symlinkSync(BIN, link);
       fs.chmodSync(BIN, 0o755);
-      out(`✅ redpen 명령 연결: ${link} → ${BIN}`);
+      out(`✅ ${tr('redpen 명령 연결: {path}', { path: `${link} → ${BIN}` })}`);
     } else {
-      out(`ℹ️  redpen 명령이 PATH에 없습니다. 이 폴더에서 \`npm link\` 를 실행하세요: ${ROOT}`);
+      out(`ℹ️  ${tr('redpen 명령이 PATH에 없습니다. 이 폴더에서 `npm link` 를 실행하세요: {path}', { path: ROOT })}`);
     }
   }
   out('');
-  out('사용: HTML을 만들던 AI 세션에서 "/redpen" (Claude Code) 또는 "$redpen" (Codex) 라고 입력하거나,');
-  out('      "빨간펜으로 리뷰하자", "리뷰 반영해줘" 처럼 말하면 됩니다.');
+  out(tr('사용: HTML을 만들던 AI 세션에서 "/redpen" (Claude Code) 또는 "$redpen" (Codex) 라고 입력하거나,'));
+  out(tr('      "빨간펜으로 리뷰하자", "리뷰 반영해줘" 처럼 말하면 됩니다.'));
 }
 
 export async function main(argv) {
   const { cmd, pos, flags } = parse(argv);
-  if (flags.help && cmd !== 'help') return out(HELP);
+  if (flags.help && cmd !== 'help') return out(pick(HELP));
   switch (cmd) {
     case 'open': return cmdOpen(pos, flags);
     case 'serve': return cmdServe(pos, flags);
@@ -388,6 +391,6 @@ export async function main(argv) {
     case 'stop': return cmdStop(pos, flags);
     case 'setup': return cmdSetup(pos, flags);
     case 'version': return out(readJSON(path.join(ROOT, 'package.json'), {}).version);
-    default: return out(HELP);
+    default: return out(pick(HELP));
   }
 }

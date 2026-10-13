@@ -176,6 +176,7 @@ export function numbering() {
   return m;
 }
 
+// Korean source labels: show them through tr() (i18n/index.js).
 export const TYPE_LABEL = { delete: '삭제', replace: '수정', comment: '코멘트', layout: '레이아웃' };
 export const TYPE_ICON = { delete: 'trash', replace: 'edit', comment: 'comment', layout: 'layout' };
 export const TARGET_LABEL = { text: '텍스트', element: '요소', region: '영역', slide: '슬라이드', sketch: '스케치' };

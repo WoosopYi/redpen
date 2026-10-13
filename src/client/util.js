@@ -21,6 +21,20 @@ export function h(tag, props, ...children) {
   return el;
 }
 
+/** Light markup → nodes, so a translated sentence keeps its emphasis: **bold**, [[key]] (kbd), `code`. */
+export function rich(text) {
+  const out = [];
+  const re = /\*\*(.+?)\*\*|\[\[(.+?)\]\]|`([^`]+)`/g;
+  let last = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(m[1] != null ? h('b', null, m[1]) : m[2] != null ? h('kbd', null, m[2]) : h('code', null, m[3]));
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
 export const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 export const trunc = (s, n) => {
   s = norm(s);

@@ -2,13 +2,14 @@ import { S, mutate } from './state.js';
 import { ui } from './ui/root.js';
 import { getSlides, slideOf, slideVisible, slideOpacity } from './slides.js';
 import { describeElement, cssPath } from './anchor.js';
-import { h, clamp, trunc, norm, uid } from './util.js';
+import { h, clamp, trunc, norm, uid, rich } from './util.js';
 import { icon } from './icons.js';
 import { scheduleRender, registerRenderer, setHover } from './ui/overlay.js';
 import { toast } from './ui/feedback.js';
 import { popoverOpen } from './ui/popover.js';
 import * as A from './actions.js';
 import { layoutSummary } from './summary.js';
+import { tr } from './i18n/index.js';
 
 /*
  * Layout editing ("레이아웃" mode). Select an element, then
@@ -90,7 +91,7 @@ function labelText(el) {
 
 export function shortName(el) {
   const t = labelText(el);
-  return t ? `「${trunc(t, 14)}」` : `<${el.localName}>`;
+  return t ? tr('「{text}」', { text: trunc(t, 14) }) : `<${el.localName}>`;
 }
 
 function tagName(el) {
@@ -410,16 +411,16 @@ function stepper(label, step, { tip, disabled = false } = {}) {
 function buildBar() {
   const el = sel.el;
   const head = (title, sub) => h('div', { class: 'lb-head' }, icon('layout', 14), h('b', null, title), h('span', { class: 'lb-sum' }, sub),
-    h('button', { class: 'iconbtn', title: '선택 해제 (Esc)', onClick: () => deselect() }, icon('x', 14)));
+    h('button', { class: 'iconbtn', title: tr('선택 해제 (Esc)'), onClick: () => deselect() }, icon('x', 14)));
   if (isSlideEl(el)) {
     const i = getSlides().els.indexOf(el);
     N.bar.replaceChildren(
-      head(`슬라이드 ${i + 1} 전체`, '슬라이드 단위로 지시'),
+      head(tr('슬라이드 {n} 전체', { n: i + 1 }), tr('슬라이드 단위로 지시')),
       h('div', { class: 'lb-row' },
-        button('코멘트', 'comment', () => A.slideComment(el, el.getBoundingClientRect()), { tip: '이 슬라이드 전체에 코멘트 (C)' }),
-        button('새 배치 스케치', 'sketch', () => A.hooks.openSketch?.(el), { tip: '칸을 그려 새 레이아웃을 지시' }),
-        button('순서 옮기기', 'updown', () => A.openSlideMove(el, N.bar.getBoundingClientRect()), { tip: '이 슬라이드를 다른 위치로' }),
-        button('삭제 표시', 'trash', () => { A.toggleSlideDelete(el); deselect(); }, { tip: '슬라이드 통째로 삭제 (D)', cls: 'danger' })),
+        button(tr('코멘트'), 'comment', () => A.slideComment(el, el.getBoundingClientRect()), { tip: tr('이 슬라이드 전체에 코멘트 (C)') }),
+        button(tr('새 배치 스케치'), 'sketch', () => A.hooks.openSketch?.(el), { tip: tr('칸을 그려 새 레이아웃을 지시') }),
+        button(tr('순서 옮기기'), 'updown', () => A.openSlideMove(el, N.bar.getBoundingClientRect()), { tip: tr('이 슬라이드를 다른 위치로') }),
+        button(tr('삭제 표시'), 'trash', () => { A.toggleSlideDelete(el); deselect(); }, { tip: tr('슬라이드 통째로 삭제 (D)'), cls: 'danger' })),
     );
   } else {
     const it = findItem(el);
@@ -430,19 +431,19 @@ function buildBar() {
     const parent = el.parentElement;
     const canUp = !!parent && parent !== document.body && parent !== document.documentElement;
     N.bar.replaceChildren(
-      head(tagName(el), layoutSummary(it?.layout) || '끌어서 이동 · 다른 칸 위에 놓으면 순서 바꾸기 · 모서리로 크기'),
+      head(tagName(el), layoutSummary(it?.layout) || tr('끌어서 이동 · 다른 칸 위에 놓으면 순서 바꾸기 · 모서리로 크기')),
       h('div', { class: 'lb-row' },
-        stepper('글자', fontStep, { tip: '글자 크기 (+ / −)' }),
-        stepper('간격', gapStep, { tip: flex || grid ? '안쪽 요소 사이 간격' : '가로·세로로 늘어선 상자(flex/grid)에서만', disabled: !(flex || grid) }),
-        stepper('여백', padStep, { tip: '안쪽 여백' }),
-        flex && button(dir.startsWith('row') ? '세로로' : '가로로', 'updown', toggleDirection, { tip: '안쪽 요소를 세로/가로로 늘어놓기' }),
-        grid && stepper('열', colStep, { tip: '격자 열 수' }),
-        button('가운데로', 'center', centerX, { tip: '슬라이드 가로 가운데로' })),
+        stepper(tr('글자'), fontStep, { tip: tr('글자 크기 (+ / −)') }),
+        stepper(tr('간격'), gapStep, { tip: tr(flex || grid ? '안쪽 요소 사이 간격' : '가로·세로로 늘어선 상자(flex/grid)에서만'), disabled: !(flex || grid) }),
+        stepper(tr('여백'), padStep, { tip: tr('안쪽 여백') }),
+        flex && button(tr(dir.startsWith('row') ? '세로로' : '가로로'), 'updown', toggleDirection, { tip: tr('안쪽 요소를 세로/가로로 늘어놓기') }),
+        grid && stepper(tr('열'), colStep, { tip: tr('격자 열 수') }),
+        button(tr('가운데로'), 'center', centerX, { tip: tr('슬라이드 가로 가운데로') })),
       h('div', { class: 'lb-row' },
-        button('상위 요소', 'up', () => canUp && select(parent), { tip: '감싸는 상자 선택 (Alt+↑)', disabled: !canUp }),
-        button('코멘트', 'comment', commentSelected, { tip: '이 요소에 코멘트 (C)' }),
-        button('삭제 표시', 'trash', deleteSelected, { tip: '이 요소 삭제 (D)', cls: 'danger' }),
-        button('원래대로', 'undo', resetSelected, { tip: '이 요소의 레이아웃 변경 취소', disabled: !it })),
+        button(tr('상위 요소'), 'up', () => canUp && select(parent), { tip: tr('감싸는 상자 선택 (Alt+↑)'), disabled: !canUp }),
+        button(tr('코멘트'), 'comment', commentSelected, { tip: tr('이 요소에 코멘트 (C)') }),
+        button(tr('삭제 표시'), 'trash', deleteSelected, { tip: tr('이 요소 삭제 (D)'), cls: 'danger' }),
+        button(tr('원래대로'), 'undo', resetSelected, { tip: tr('이 요소의 레이아웃 변경 취소'), disabled: !it })),
     );
   }
   N.bar.style.display = '';
@@ -463,30 +464,30 @@ function snapTargets(slideEl, el, home = null) {
   const add = (list, kind, v, label, span, box = null) => list.push({ kind, v, label, span, box, prio: !!box });
   // purple areas drawn on the slide: an element's original spot, another's target box, sketch boxes
   const addBox = (r, name) => {
-    add(xs, 'l', r.left, `${name} 왼쪽 선`, [r.top, r.bottom], r);
-    add(xs, 'c', r.left + r.width / 2, `${name} 가로 가운데`, [r.top, r.bottom], r);
-    add(xs, 'r', r.right, `${name} 오른쪽 선`, [r.top, r.bottom], r);
-    add(ys, 't', r.top, `${name} 위쪽 선`, [r.left, r.right], r);
-    add(ys, 'm', r.top + r.height / 2, `${name} 세로 가운데`, [r.left, r.right], r);
-    add(ys, 'b', r.bottom, `${name} 아래쪽 선`, [r.left, r.right], r);
+    add(xs, 'l', r.left, tr('{name} 왼쪽 선', { name }), [r.top, r.bottom], r);
+    add(xs, 'c', r.left + r.width / 2, tr('{name} 가로 가운데', { name }), [r.top, r.bottom], r);
+    add(xs, 'r', r.right, tr('{name} 오른쪽 선', { name }), [r.top, r.bottom], r);
+    add(ys, 't', r.top, tr('{name} 위쪽 선', { name }), [r.left, r.right], r);
+    add(ys, 'm', r.top + r.height / 2, tr('{name} 세로 가운데', { name }), [r.left, r.right], r);
+    add(ys, 'b', r.bottom, tr('{name} 아래쪽 선', { name }), [r.left, r.right], r);
   };
-  if (home) addBox(home, '원래 위치');
+  if (home) addBox(home, tr('원래 위치'));
   for (const it of S.items) {
     if (it.type !== 'layout') continue;
     if (it.target === 'sketch' && it._slide === slideEl) {
-      (it.sketch?.boxes || []).forEach((b, i) => addBox(rectOf(b, s), `스케치 칸 ${i + 1}${b.label ? `「${trunc(b.label, 12)}」` : ''}`));
+      (it.sketch?.boxes || []).forEach((b, i) => addBox(rectOf(b, s), b.label ? tr('스케치 칸 {n}「{label}」', { n: i + 1, label: trunc(b.label, 12) }) : tr('스케치 칸 {n}', { n: i + 1 })));
     } else if (it.target === 'element' && it.layout && it._el?.isConnected && it._el !== el && slideFor(it._el) === slideEl) {
       const L = it.layout;
-      if (L.to || L.reorder) addBox(rectOf(L.from, s), `${shortName(it._el)}의 원래 위치`);
-      if (L.to && L.fit === 'box') addBox(rectOf(L.to, s), `${shortName(it._el)}의 목표 상자`);
+      if (L.to || L.reorder) addBox(rectOf(L.from, s), tr('{name}의 원래 위치', { name: shortName(it._el) }));
+      if (L.to && L.fit === 'box') addBox(rectOf(L.to, s), tr('{name}의 목표 상자', { name: shortName(it._el) }));
     }
   }
-  add(xs, 'l', s.left, '슬라이드 왼쪽 끝');
-  add(xs, 'c', s.left + s.width / 2, '슬라이드 가로 가운데');
-  add(xs, 'r', s.right, '슬라이드 오른쪽 끝');
-  add(ys, 't', s.top, '슬라이드 위쪽 끝');
-  add(ys, 'm', s.top + s.height / 2, '슬라이드 세로 가운데');
-  add(ys, 'b', s.bottom, '슬라이드 아래쪽 끝');
+  add(xs, 'l', s.left, tr('슬라이드 왼쪽 끝'));
+  add(xs, 'c', s.left + s.width / 2, tr('슬라이드 가로 가운데'));
+  add(xs, 'r', s.right, tr('슬라이드 오른쪽 끝'));
+  add(ys, 't', s.top, tr('슬라이드 위쪽 끝'));
+  add(ys, 'm', s.top + s.height / 2, tr('슬라이드 세로 가운데'));
+  add(ys, 'b', s.bottom, tr('슬라이드 아래쪽 끝'));
   if (slideEl !== document.body && slideEl.offsetWidth) {
     const k = s.width / slideEl.offsetWidth;
     const cs = getComputedStyle(slideEl);
@@ -494,10 +495,10 @@ function snapTargets(slideEl, el, home = null) {
     const pr = parseFloat(cs.paddingRight) * k;
     const pt = parseFloat(cs.paddingTop) * k;
     const pb = parseFloat(cs.paddingBottom) * k;
-    if (pl > 4) add(xs, 'l', s.left + pl, '슬라이드 왼쪽 여백선');
-    if (pr > 4) add(xs, 'r', s.right - pr, '슬라이드 오른쪽 여백선');
-    if (pt > 4) add(ys, 't', s.top + pt, '슬라이드 위쪽 여백선');
-    if (pb > 4) add(ys, 'b', s.bottom - pb, '슬라이드 아래쪽 여백선');
+    if (pl > 4) add(xs, 'l', s.left + pl, tr('슬라이드 왼쪽 여백선'));
+    if (pr > 4) add(xs, 'r', s.right - pr, tr('슬라이드 오른쪽 여백선'));
+    if (pt > 4) add(ys, 't', s.top + pt, tr('슬라이드 위쪽 여백선'));
+    if (pb > 4) add(ys, 'b', s.bottom - pb, tr('슬라이드 아래쪽 여백선'));
   }
   const area = s.width * s.height;
   let n = 0;
@@ -508,12 +509,12 @@ function snapTargets(slideEl, el, home = null) {
     if (r.width * r.height < area * 0.004 || r.width < 2) continue;
     n++;
     const name = shortName(o);
-    add(xs, 'l', r.left, `${name} 왼쪽 선`, [r.top, r.bottom]);
-    add(xs, 'c', r.left + r.width / 2, `${name} 가로 가운데`, [r.top, r.bottom]);
-    add(xs, 'r', r.right, `${name} 오른쪽 선`, [r.top, r.bottom]);
-    add(ys, 't', r.top, `${name} 위쪽 선`, [r.left, r.right]);
-    add(ys, 'm', r.top + r.height / 2, `${name} 세로 가운데`, [r.left, r.right]);
-    add(ys, 'b', r.bottom, `${name} 아래쪽 선`, [r.left, r.right]);
+    add(xs, 'l', r.left, tr('{name} 왼쪽 선', { name }), [r.top, r.bottom]);
+    add(xs, 'c', r.left + r.width / 2, tr('{name} 가로 가운데', { name }), [r.top, r.bottom]);
+    add(xs, 'r', r.right, tr('{name} 오른쪽 선', { name }), [r.top, r.bottom]);
+    add(ys, 't', r.top, tr('{name} 위쪽 선', { name }), [r.left, r.right]);
+    add(ys, 'm', r.top + r.height / 2, tr('{name} 세로 가운데', { name }), [r.left, r.right]);
+    add(ys, 'b', r.bottom, tr('{name} 아래쪽 선', { name }), [r.left, r.right]);
   }
   return { xs, ys, slide: s };
 }
@@ -537,7 +538,8 @@ function snapRect(R, targets, xEdges, yEdges) {
   return { dx: x?.d || 0, dy: y?.d || 0, x, y };
 }
 
-const snapNotes = (snap) => [snap?.x, snap?.y].filter(Boolean).map((s) => `${s.t.label}에 맞춤`);
+const snapNote = (label) => tr('{label}에 맞춤', { label });
+const snapNotes = (snap) => [snap?.x, snap?.y].filter(Boolean).map((s) => snapNote(s.t.label));
 
 function showGuides(snap, s) {
   const line = (node, hit, vertical) => {
@@ -740,7 +742,7 @@ function endMove(d) {
     L.snaps = snaps;
     L.reorder = null;
   });
-  if (home) toast('원래 위치로 되돌렸어요', { ms: 1600 });
+  if (home) toast(tr('원래 위치로 되돌렸어요'), { ms: 1600 });
   select(el);
 }
 
@@ -933,7 +935,7 @@ function centerX() {
   commit(el, (L) => {
     L.to = frac(T, s);
     L.fit = prev?.fit || 'scale';
-    L.snaps = ['슬라이드 가로 가운데에 맞춤'];
+    L.snaps = [snapNote(tr('슬라이드 가로 가운데'))];
     L.reorder = null;
   });
 }
@@ -1022,7 +1024,7 @@ export function onKey(e) {
     // plain arrows belong to the deck: they turn the page even with something selected
     if (!localStorage.getItem(NUDGE_TIP_KEY)) {
       localStorage.setItem(NUDGE_TIP_KEY, '1');
-      toast('선택한 요소를 조금씩 옮기려면 Shift+방향키', { ms: 2600 });
+      toast(tr('선택한 요소를 조금씩 옮기려면 Shift+방향키'), { ms: 2600 });
     }
     return false;
   }
@@ -1109,7 +1111,7 @@ function renderMarks() {
       n.out.style.display = boxed ? '' : 'none';
       if (boxed) {
         size(n.out, rectOf(L.to, s));
-        n.out.firstChild.textContent = `너비 ${pct(L.to.w)}% × 높이 ${pct(L.to.h)}%`;
+        n.out.firstChild.textContent = tr('너비 {w}% × 높이 {h}%', { w: pct(L.to.w), h: pct(L.to.h) });
       }
     }
   }
@@ -1128,13 +1130,13 @@ const TIP_KEY = 'redpen:layout-tip';
 function coach() {
   if (N.coach || localStorage.getItem(TIP_KEY)) return;
   N.coach = h('div', { class: 'onboard lcoach' },
-    h('h4', null, '📐 레이아웃 모드'),
+    h('h4', null, tr('📐 레이아웃 모드')),
     h('ul', null,
-      h('li', null, '바꿀 요소(카드·이미지·글 상자)를 ', h('b', null, '클릭'), ' → 끌어서 옮기기'),
-      h('li', null, '다른 칸 위에 놓으면 ', h('b', null, '순서 바꾸기')),
-      h('li', null, '모서리 손잡이로 ', h('b', null, '크기'), ', 막대에서 글자·간격·여백'),
-      h('li', null, h('kbd', null, 'Shift'), '+방향키 조금씩 옮기기 · 방향키만 누르면 슬라이드 넘기기'),
-      h('li', null, h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'C'), ' 코멘트 · ', h('kbd', null, 'Esc'), ' 선택 해제')),
+      h('li', null, rich(tr('바꿀 요소(카드·이미지·글 상자)를 **클릭** → 끌어서 옮기기'))),
+      h('li', null, rich(tr('다른 칸 위에 놓으면 **순서 바꾸기**'))),
+      h('li', null, rich(tr('모서리 손잡이로 **크기**, 막대에서 글자·간격·여백'))),
+      h('li', null, rich(tr('[[Shift]]+방향키 조금씩 옮기기 · 방향키만 누르면 슬라이드 넘기기'))),
+      h('li', null, rich(tr('[[D]] 삭제 · [[C]] 코멘트 · [[Esc]] 선택 해제')))),
     h('button', {
       class: 'btn',
       onClick: () => {
@@ -1142,7 +1144,7 @@ function coach() {
         N.coach.remove();
         N.coach = null;
       },
-    }, '알겠어요'));
+    }, tr('알겠어요')));
   ui.app.append(N.coach);
 }
 
@@ -1232,7 +1234,7 @@ export function initLayout() {
   N.svg.setAttribute('class', 'larrows');
   N.svg.innerHTML = '<defs><marker id="rp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8e4ec6"/></marker></defs>';
   N.bar = h('div', { class: 'lbar', style: { display: 'none' } });
-  N.hint = h('div', { class: 'lhint', style: { display: 'none' } }, icon('layout', 14), '바꿀 요소를 클릭하세요 · 끌어서 이동 · 모서리로 크기');
+  N.hint = h('div', { class: 'lhint', style: { display: 'none' } }, icon('layout', 14), tr('바꿀 요소를 클릭하세요 · 끌어서 이동 · 모서리로 크기'));
   ui.layer.append(N.svg, N.dghost, N.tbox, N.box, N.out, N.gx, N.gy, N.ins, ...N.handles, N.size);
   ui.app.append(N.bar, N.hint);
   registerRenderer(render);

@@ -10,7 +10,8 @@ import { initOverlay, scheduleRender, renderBurst, refreshHighlights } from './u
 import { popoverDirty } from './ui/popover.js';
 import { toast, banner, hideBanner, statusBanner, modalOpen } from './ui/feedback.js';
 import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, goToSlide, slideTitle } from './slides.js';
-import { h } from './util.js';
+import { h, rich } from './util.js';
+import { tr } from './i18n/index.js';
 import * as L from './layout.js';
 import { initSketch, openSketch, sketchOpen } from './sketch.js';
 
@@ -54,8 +55,8 @@ function restorePosition() {
     if (pos.x || pos.y) scrollTo(pos.x, pos.y);
     scheduleRender();
   }, 120);
-  if (pos.reason === 'html') toast('🔄 HTML이 바뀌어서 새로고침했어요', { ms: 2200 });
-  if (pos.reason === 'tool') toast('✨ 빨간펜이 새 버전으로 바뀌어서 새로고침했어요', { ms: 3000 });
+  if (pos.reason === 'html') toast(tr('🔄 HTML이 바뀌어서 새로고침했어요'), { ms: 2200 });
+  if (pos.reason === 'tool') toast(tr('✨ 빨간펜이 새 버전으로 바뀌어서 새로고침했어요'), { ms: 3000 });
 }
 
 let reloadPending = false;
@@ -73,7 +74,7 @@ function onFilesChanged() {
   if (popoverDirty() || modalOpen()) {
     if (!reloadPending) {
       reloadPending = true;
-      banner('HTML이 바뀌었어요', [{ label: '새로고침', primary: true, run: () => reloadNow('html') }]);
+      banner(tr('HTML이 바뀌었어요'), [{ label: tr('새로고침'), primary: true, run: () => reloadNow('html') }]);
     }
     return;
   }
@@ -87,7 +88,7 @@ function checkBuild(build) {
   if (popoverDirty() || modalOpen() || sketchOpen() || L.dragging()) {
     if (!toolUpdatePending) {
       toolUpdatePending = true;
-      banner('빨간펜이 새 버전으로 바뀌었어요', [{ label: '새로고침', primary: true, run: () => reloadNow('tool') }]);
+      banner(tr('빨간펜이 새 버전으로 바뀌었어요'), [{ label: tr('새로고침'), primary: true, run: () => reloadNow('tool') }]);
     }
     return;
   }
@@ -97,19 +98,19 @@ function checkBuild(build) {
 function onboard() {
   if (localStorage.getItem('redpen:onboarded')) return;
   const card = h('div', { class: 'onboard', style: { left: '50%', bottom: '74px', transform: 'translateX(-50%)' } },
-    h('h4', null, '✒️ 화면에 바로 표시하세요'),
+    h('h4', null, tr('✒️ 화면에 바로 표시하세요')),
     h('ul', null,
-      h('li', null, '텍스트를 드래그 → ', h('kbd', null, 'D'), ' 삭제 · ', h('kbd', null, 'R'), ' 수정 · ', h('kbd', null, 'C'), ' 코멘트'),
-      h('li', null, h('b', null, '레이아웃'), ' — 클릭해서 끌면 이동, 모서리로 크기, 글자·간격 조절'),
-      h('li', null, '영역 모드로 빈 공간에 지시, 슬라이드 메뉴로 새 배치 스케치'),
-      h('li', null, '다 했으면 ', h('b', null, 'AI에게 보내기'), ' → AI 세션이 이어서 반영')),
+      h('li', null, rich(tr('텍스트를 드래그 → [[D]] 삭제 · [[R]] 수정 · [[C]] 코멘트'))),
+      h('li', null, rich(tr('**레이아웃** — 클릭해서 끌면 이동, 모서리로 크기, 글자·간격 조절'))),
+      h('li', null, tr('영역 모드로 빈 공간에 지시, 슬라이드 메뉴로 새 배치 스케치')),
+      h('li', null, rich(tr('다 했으면 **AI에게 보내기** → AI 세션이 이어서 반영')))),
     h('button', {
       class: 'btn',
       onClick: () => {
         localStorage.setItem('redpen:onboarded', '1');
         card.remove();
       },
-    }, '시작하기'));
+    }, tr('시작하기')));
   ui.app.append(card);
 }
 
@@ -147,7 +148,7 @@ async function init() {
   try {
     state = await api.getState();
   } catch {
-    toast('리뷰 서버에 연결하지 못했어요. 터미널에서 redpen open 을 다시 실행해 주세요.', { kind: 'error', ms: 0 });
+    toast(tr('리뷰 서버에 연결하지 못했어요. 터미널에서 redpen open 을 다시 실행해 주세요.'), { kind: 'error', ms: 0 });
     return;
   }
   S.items = state.draft?.items || [];
@@ -208,7 +209,7 @@ async function init() {
   let lostTimer = 0;
   let retryTimer = 0;
   const showConnection = () => statusBanner(connLost || saveFailed
-    ? '⚠️ 리뷰 서버와 연결이 끊겨 표시가 저장되지 않고 있어요. 터미널에서 redpen open 을 다시 실행해 주세요.'
+    ? tr('⚠️ 리뷰 서버와 연결이 끊겨 표시가 저장되지 않고 있어요. 터미널에서 redpen open 을 다시 실행해 주세요.')
     : null);
   onSaveState((ok) => {
     saveFailed = !ok;

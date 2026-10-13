@@ -5,6 +5,7 @@ import { slideMeta, whereLabel, elementsIn } from './anchor.js';
 import { h, clamp, uid } from './util.js';
 import { icon } from './icons.js';
 import { toast } from './ui/feedback.js';
+import { tr } from './i18n/index.js';
 import { registerRenderer, scheduleRender } from './ui/overlay.js';
 import { withoutPreviews } from './layout.js';
 
@@ -28,18 +29,18 @@ export function openSketch(slideEl, item = sketchItemFor(slideEl)) {
   sk = { slideEl, item: item || null, boxes: (item?.sketch?.boxes || []).map((b) => ({ x: b.x, y: b.y, w: b.w, h: b.h, label: b.label || '' })) };
   sk.area = h('div', { class: 'sk-area' });
   sk.root = h('div', { class: 'sketch' }, h('div', { class: 'sk-veil' }), sk.area);
-  sk.memo = h('input', { class: 'sk-memo', placeholder: '전체 설명 (선택) — 예: 사진을 크게, 설명은 3줄 이내', value: item?.comment || '' });
+  sk.memo = h('input', { class: 'sk-memo', placeholder: tr('전체 설명 (선택) — 예: 사진을 크게, 설명은 3줄 이내'), value: item?.comment || '' });
   sk.memo.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) save();
   });
-  const veilBtn = h('button', { class: 'btn ghost', onClick: () => { sk.root.classList.toggle('see'); veilBtn.textContent = sk.root.classList.contains('see') ? '흐리게' : '내용 보기'; } }, '내용 보기');
+  const veilBtn = h('button', { class: 'btn ghost', onClick: () => { sk.root.classList.toggle('see'); veilBtn.textContent = tr(sk.root.classList.contains('see') ? '흐리게' : '내용 보기'); } }, tr('내용 보기'));
   sk.bar = h('div', { class: 'skbar' },
     icon('sketch', 16),
-    h('b', null, meta.single ? '새 배치 스케치' : `슬라이드 ${meta.index + 1} 새 배치 스케치`),
-    h('span', { class: 'hint' }, '빈 곳을 드래그해 칸을 그리고, 칸마다 들어갈 내용을 적으세요'),
+    h('b', null, meta.single ? tr('새 배치 스케치') : tr('슬라이드 {n} 새 배치 스케치', { n: meta.index + 1 })),
+    h('span', { class: 'hint' }, tr('빈 곳을 드래그해 칸을 그리고, 칸마다 들어갈 내용을 적으세요')),
     sk.memo, veilBtn,
-    h('button', { class: 'btn ghost', onClick: () => closeSketch() }, '취소'),
-    h('button', { class: 'btn primary', onClick: save }, '완료'));
+    h('button', { class: 'btn ghost', onClick: () => closeSketch() }, tr('취소')),
+    h('button', { class: 'btn primary', onClick: save }, tr('완료')));
   sk.area.addEventListener('pointerdown', drawBox);
   ui.app.append(sk.root, sk.bar);
   renderBoxes();
@@ -110,17 +111,17 @@ function drawBox(e) {
 }
 
 function boxEl(b, i) {
-  const input = h('input', { class: 'sk-label', placeholder: '이 칸에 들어갈 내용', value: b.label });
+  const input = h('input', { class: 'sk-label', placeholder: tr('이 칸에 들어갈 내용'), value: b.label });
   input.addEventListener('input', () => { b.label = input.value; });
   input.addEventListener('keydown', (e) => {
     if (e.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' || e.key === 'Escape') input.blur();
   });
-  const handle = h('span', { class: 'sk-h', title: '크기 조절' });
+  const handle = h('span', { class: 'sk-h', title: tr('크기 조절') });
   const el = h('div', { class: 'skbox' },
     h('span', { class: 'sk-n' }, String(i + 1)),
     input,
-    h('button', { class: 'sk-x', title: '칸 지우기', onClick: () => { sk.boxes.splice(i, 1); renderBoxes(); } }, icon('x', 12)),
+    h('button', { class: 'sk-x', title: tr('칸 지우기'), onClick: () => { sk.boxes.splice(i, 1); renderBoxes(); } }, icon('x', 12)),
     handle);
   setBox(el, b);
   // drag the box body to move it, the corner to resize it
@@ -185,7 +186,7 @@ function save() {
       S.items.push(Object.assign({ id: uid(), createdAt: Date.now(), ...data, ...(memo ? { comment: memo } : {}) }, { _slide: slideEl }));
     }
   });
-  toast(`새 배치 스케치를 저장했어요 (칸 ${boxes.length}개)`, { ms: 2200 });
+  toast(tr('새 배치 스케치를 저장했어요 (칸 {n}개)', { n: boxes.length }), { ms: 2200 });
 }
 
 /** Keys while the sketch editor is open. Keeps the deck from changing slides underneath. */

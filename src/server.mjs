@@ -7,6 +7,7 @@ import { loadSources, annotate } from './locate.mjs';
 import { renderRounds } from './prompt.mjs';
 import { readJSON } from './util.mjs';
 import { itemSummary } from './client/summary.js';
+import { tr } from './client/i18n/index.js';
 
 const CLIENT_DIR = fileURLToPath(new URL('./client/', import.meta.url));
 export const VERSION = readJSON(fileURLToPath(new URL('../package.json', import.meta.url)), {})?.version || '0.0.0';
@@ -326,7 +327,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
       const body = JSON.parse((await readBody(req)) || '{}');
       const items = sanitizeItems(body.items);
       const deckComment = String(body.deckComment || '').slice(0, 50000);
-      if (!items.length && !deckComment.trim()) return sendJSON(res, 400, { error: '보낼 표시가 없습니다.' });
+      if (!items.length && !deckComment.trim()) return sendJSON(res, 400, { error: tr('보낼 표시가 없습니다.') });
 
       if (body.clientId && Number.isFinite(body.seq)) {
         draftSeq.set(body.clientId, Math.max(body.seq, draftSeq.get(body.clientId) || 0));
@@ -375,7 +376,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, lo
     try {
       raw = await fs.promises.readFile(store.deckPath);
     } catch {
-      return send(res, 404, `HTML 파일을 찾을 수 없습니다: ${store.deckPath}`);
+      return send(res, 404, tr('HTML 파일을 찾을 수 없습니다: {path}', { path: store.deckPath }));
     }
     // latin1 round-trips bytes exactly, so decks in other encodings (e.g. EUC-KR) are not mangled.
     const html = raw.toString('latin1');

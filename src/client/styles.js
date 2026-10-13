@@ -70,7 +70,7 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 @keyframes rp-blink { 50% { opacity: .3; } }
 @media (max-width: 820px) { .bar .lbl { display: none; } .bar .tb { padding: 0 8px; } }
 .bar.paused .seg, .bar.paused .hide-paused { display: none; }
-.bar.paused .logo b::after { content: ' · 일시정지'; color: #8b8d98; font-weight: 500; }
+.bar.paused .logo b::after { content: ' · ' attr(data-paused); color: #8b8d98; font-weight: 500; }
 .bar.collapsed > :not(.logo):not(.mini) { display: none; }
 .mini { display: none; }
 .bar.collapsed .mini { display: inline-flex; }
