@@ -2,125 +2,94 @@
 
 # <img src="docs/logo.svg" width="30" height="30" alt=""> Redpen
 
-**Mark fixes on your AI-made HTML slides — the same AI session applies them.**
+Mark up your AI-made HTML slides in the browser, and the AI that made them fixes them.
 
-[한국어](README.md) · **English**
+[한국어](README.md) | **English**
 
-<p><img src="docs/hero-en.png" alt="Redpen on a slide: delete, replace, comment, area and layout marks, the list of marks on the right and the toolbar below" width="100%"></p>
+<p><img src="docs/hero-en.png" alt="Slides marked up with Redpen" width="100%"></p>
 
 </div>
 
-AI drafts HTML slides fast, but fixing them is tedious. Instead of typing "delete 'And this…' in the second paragraph on page 7", drag over it on the screen and press one key. Each mark becomes an edit request with the slide number, original text, surrounding context and source `file:line`, and goes to **the very Claude Code or Codex session that made the HTML**. When the AI is done, the page reloads by itself and its reply pops up.
+Getting an AI to draft HTML slides is quick. Fixing them takes longer, because you have to describe every change in words: "on slide 7, delete 'And this is very important' from the second paragraph."
 
-## Quick start
+Redpen lets you mark the slides directly in the browser. Drag over a sentence to delete or replace it, drag a card to move it, or draw a box on empty space to leave a note. Each mark becomes an edit request with the slide number, the original text and the source file and line, and goes to the Claude Code or Codex session that made the slides. When the AI has edited the files, the page reloads and shows its reply.
+
+## Install
 
 Requires Node.js 18 or later.
 
 ```bash
 npm install -g @woosopyi/redpen
-redpen setup          # adds the redpen skill to Claude Code and Codex
+redpen setup
 ```
 
-In the AI session that made the slides, type `/redpen` (Claude Code) or `$redpen` (Codex), or just say "let's review with redpen", and the review page opens.
+`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run `npm update -g @woosopyi/redpen`; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
 
-- Update: `npm update -g @woosopyi/redpen` — the installed skills catch up with the new version on your next `redpen open`.
-- Remove: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
-- From a clone of this repository (for development): run `node bin/redpen.mjs setup` in it — the command gets linked as `~/.local/bin/redpen` (or use `npm link` if that is not on your PATH).
+## Usage
 
-## See it in action
+In the AI session that made your slides, type `/redpen` (or `$redpen` in Codex). You can also just say "let's review with redpen".
 
-### 1. Fix text — drag, then D · R · C
+The AI opens the review page in your browser and waits. Mark what you want changed and click Send to AI. The AI edits the files, the page reloads, and the AI's reply tells you what it changed. Repeat as many times as you like. When you're done, click the quit button (⏻) at the right end of the toolbar, or tell the AI "end the review".
 
-<img src="docs/media/en/01-text.gif" alt="Fix text: drag and press D to delete, R to replace, C to comment" width="100%">
-
-### 2. Change the layout — drag to move, pull a corner to resize
-
-<img src="docs/media/en/02-layout.gif" alt="Change the layout: drag a card to reorder it and pull a corner to enlarge" width="100%">
-
-### 3. Areas and slides — empty space, layout sketches, whole slides
-
-<img src="docs/media/en/03-areas-slides.gif" alt="Area comment, new layout sketch and marking a slide for deletion" width="100%">
-
-### 4. Send to AI — the same session fixes it and the page comes back
-
-<img src="docs/media/en/04-send.gif" alt="Send to AI: the AI session edits the source, the page reloads and the reply pops up" width="100%">
-
-> These are real screen recordings. The deck in them is [`examples/showcase`](examples/showcase) — open it yourself: `redpen examples/showcase/en.html --lang en`
-
-## How it works
-
-```
- Browser (Redpen overlay)              Local server · .redpen/              AI session (Claude Code · Codex)
- ────────────────────────              ───────────────────────              ────────────────────────────────
- drag → delete · replace · comment
- [Send to AI]  ──────────────────▶  saves the edit request (round 1, 2 …) ──▶  redpen wait picks it up and prints it
-                                                                                 ↓ the AI edits the HTML / slides.js
- auto-reload + reply toast  ◀─────  notices the file change · saves reply ◀──  redpen wait --reply "what changed"
-```
-
-- Your deck files stay untouched: the local server only injects the overlay script while serving them.
-- The AI session keeps `redpen wait` running in the background, so you can go back and forth for several rounds while only looking at the browser.
-- Requests are saved even when no AI is waiting. Say "apply my review" in the session later and it picks them up.
-
-## Ways to start
-
-### A. Continue in the AI session that made the HTML (recommended)
-
-In the conversation that made the slides, say:
-
-```
-/redpen                       ← Claude Code
-$redpen                       ← Codex
-let's review with redpen      ← plain words work too
-```
-
-The AI opens the review page with `redpen open` and waits. Mark things, press **Send to AI** → the AI applies them → the page reloads → read the reply → mark again… To finish, press **⏻ Quit** at the right end of the toolbar, or tell the session "end the review".
-
-### B. Open it yourself, apply later
+You can also open a deck yourself:
 
 ```bash
-redpen slides/index.html --lang en     # a folder works too: redpen slides/
+redpen slides/index.html
 ```
 
-Mark things, press **Send to AI**, then say "apply my review" in your AI session.
-Without the skill, say: "apply the output of `redpen pending slides/index.html`".
+Whatever you send is saved, and the AI applies it later when you say "apply my review" in your session. If you use some other AI chat, the Copy button in the list panel copies the edit request so you can paste it there.
 
-### C. Paste into any AI chat
+### Fixing text
 
-The **Copy** button in the list panel copies the edit request to the clipboard (it is kept in Sent as well).
+Drag over the text, then press D to delete it, R to replace it, or C to comment.
 
-Try it on the example deck: `redpen examples/basic-en/index.html --lang en` (or `npm run demo:en`).
+<img src="docs/media/en/01-text.gif" alt="Dragging over text and pressing D, R and C to delete, replace and comment" width="100%">
 
-## What you can do on the page
+### Changing the layout
 
-| To… | Do this |
+In Layout mode, click a card or an image and drag it to move it. Drop it on another slot to change the order. Pull a corner to resize it, and use the bar below it for font size and spacing. What you see is a preview; the AI makes the real change in the files after you send.
+
+<img src="docs/media/en/02-layout.gif" alt="Dragging a card to reorder it and pulling a corner to enlarge it" width="100%">
+
+### Empty space and whole slides
+
+In Area mode, draw a box on empty space and write something like "add a picture here". The slide menu in the toolbar lets you comment on a whole slide, delete it or move it. You can also sketch a new layout for the slide there by drawing boxes.
+
+<img src="docs/media/en/03-areas-slides.gif" alt="Leaving a note on empty space, sketching a new layout and marking a slide for deletion" width="100%">
+
+### Sending to the AI
+
+The waiting AI session picks up your marks and edits the source. The toolbar shows "AI working" in the meantime, and the page reloads when it's done.
+
+<img src="docs/media/en/04-send.gif" alt="The AI session applying the edit request and the page reloading" width="100%">
+
+These are real screen recordings. The deck in them is in [examples/showcase](examples/showcase), and you can open it with `redpen examples/showcase/en.html --lang en`.
+
+## Keyboard shortcuts
+
+| Key | Action |
 |---|---|
-| Delete text | Drag → **D** (or Delete / Backspace, or Delete in the menu) |
-| Replace text | Drag → **R** → type the new text → Enter |
-| Comment | Drag → **C** → type the instruction → Enter (Shift+Enter for a new line) |
-| Select an image or box | **Layout** mode (Alt+2) → click (click inside again for the inner element, Alt+↑ for its parent) |
-| Move an element | Drag the selected element — it snaps like a magnet to the slide's center and margins, other elements' edges and the purple areas (its original spot, sketch boxes, other elements' target boxes); hold Alt to turn snapping off. Dropping it near its original spot cancels the move. **Shift+arrow keys** nudge it (Shift+Alt: bigger steps) |
-| Reorder | Drag onto another slot (a card, a list item) — it goes where the blue line shows, before or after |
-| Resize | Corner handles = scale proportionally; side handles = only the box width / height (images always keep their proportions) |
-| Font · gap · padding · direction · columns | In the layout bar: **Font −/+**, **Gap −/+** (flex / grid boxes), **Padding −/+**, **Vertical / Horizontal**, **Columns −/+** (grid), **Center** |
-| Delete / comment on an element | Select it, then **D** / **C** (or Delete / Comment in the bar); **Reset** undoes its layout changes |
-| Instruction for empty space | **Area** mode (Alt+3) → drag to draw a box → type the instruction |
-| A whole slide | The slide menu in the toolbar (`3 / 24 ▾`) → comment · delete · **move** (to the front, one step, or to a number) |
-| New layout sketch | Slide menu → **Sketch a new layout** → drag on empty space to draw boxes, write what goes in each ("big photo", "3 lines of text"), then **Done** |
-| Instructions for the whole deck | **Deck-wide instructions** at the top of the list panel |
-| Edit or remove a mark | Click the marked text or its number pin → switch the type (delete ↔ replace ↔ comment), edit or remove |
-| Go to a mark | Click it in the list panel (uses the deck's own way of changing slides) |
-| Undo / redo | ⌘Z / ⌘⇧Z (Windows: Ctrl) |
-| Send | **Send to AI** or ⌘Enter |
-| Use the deck as it is | ⏸ Pause (hides the marks and layout previews — handy for before/after comparisons) |
-| Turn Redpen off | ⏻ Quit — tells a waiting AI session the review is over and stops the review server. Unsent marks are saved and come back next time |
-| Move or collapse the toolbar | Drag / click the **Redpen** logo on its left (double-click: back to its place) |
+| `D` `R` `C` | Delete, replace or comment on the selected text. In Layout mode, mark the selected element for deletion or comment on it |
+| `Alt+1` `Alt+2` `Alt+3` | Text, Layout and Area mode |
+| `Shift+arrows` | Nudge the selected element (add `Alt` for bigger steps) |
+| `Alt+↑` `Alt+↓` | Select the parent or child element |
+| `⌘Z` `⌘⇧Z` | Undo, redo (`Ctrl` on Windows) |
+| `⌘Enter` | Send to AI |
+| `Esc` | Deselect, close the open popup |
 
-- Turn slides with the deck's own keys (arrows, space…). In Layout mode the arrow keys still turn slides while an element is selected, and the deck's own ← / → buttons outside the slides work in every mode.
-- Marks are saved automatically. After a reload, or after the AI edits the files, the remaining marks find their wording again. When the surrounding text changed too much to be sure, a mark is flagged "not found on the page" instead of being attached somewhere wrong (its original text is still sent).
-- The toolbar shows the session status: **AI waiting** (green) / **AI working** (blue) / **AI offline** (gray).
+Turn slides with the deck's own keys (arrows, space). The arrow keys keep turning slides in Layout mode, even with an element selected.
 
-## What the AI receives (example)
+A few more things:
+
+- Elements you drag snap to the center of the slide and to the edges of other elements. Hold `Alt` while dragging to turn snapping off.
+- Marks are saved as you go. After a reload, or after the AI has edited the files, each mark finds its text again. If the text changed too much to be sure, the mark is flagged "not found on the page" instead of ending up in the wrong place.
+- Instructions for the whole deck ("make all the text bigger") go in the Deck-wide instructions box at the top of the list panel.
+- To use the deck's own buttons or videos, click the pause button in the toolbar. It also hides your marks, which helps when you want to compare with the original.
+- Drag the Redpen logo at the left of the toolbar to move the toolbar. Click the logo to collapse it, and double-click to put it back in place.
+
+## What the AI receives
+
+When you send, the AI gets text like this. Even if the slide content lives in a script such as `slides.js` instead of the HTML, Redpen finds the visible text in the sources and tells the AI which file and line to edit.
 
 ```markdown
 # ✒️ Redpen edit request · round 1
@@ -152,9 +121,10 @@ Slide location: around `slides.js:23`
 - Location: DOM `div#deck > section.slide:nth-of-type(3) > div.body > p.note` · Source: `slides.js:28`
 ```
 
-Even when the slide content lives in a script such as `slides.js` rather than the HTML, Redpen finds the visible wording in the sources and tells the AI **which file and line to actually edit**.
+<details>
+<summary>When you change the layout</summary>
 
-For layout changes, the AI gets "how it is laid out now (which slot of a flex / grid with how many columns)" and "what changed", with before → after numbers.
+The AI also gets the current layout (which slot of which flex or grid container) and what to change, with numbers before and after.
 
 ```markdown
 ### #3 📐 Layout change · element `<div>`
@@ -171,72 +141,66 @@ For layout changes, the AI gets "how it is laid out now (which slot of a flex / 
   2. "Three lines of text" — middle right (x 55–95%, y 30–90%) · there now: `<div>` "Be careful with …"
 ```
 
+</details>
+
 ## Supported decks
 
-- Decks that stack `.slide` elements and show one at a time (arrow keys, `#5` hash navigation), scrolling decks, reveal.js, decks built by JavaScript, and plain pages without slides
-- Decks that scale a 1920×1080 stage with `transform: scale()`, including overview (grid) modes
-- Click-to-advance decks don't advance while you drag or double-click text (clicks on empty space, the deck's buttons and videos still work). Text can be selected even in `user-select: none` decks
-- If slide detection gets it wrong, set it yourself: `redpen open deck.html --slide "section.page"`
+Redpen works with decks that stack `.slide` elements and show one at a time (arrow keys or a `#5`-style address), scrolling decks, reveal.js, and decks that scale a 1920×1080 stage with `transform: scale()`. Decks built with JavaScript and plain web pages without slides work too.
+
+Click-to-advance decks don't advance while you drag or double-click text. If the slide numbers come out wrong, tell Redpen what a slide is:
+
+```bash
+redpen open deck.html --slide "section.page"
+```
 
 ## Commands
 
-| Command | What it does |
+| Command | Description |
 |---|---|
-| `redpen <html>` / `redpen open <html>` | Open the review page (`--port`, `--slide <selector>`, `--lang ko\|en`, `--no-open`) |
-| `redpen wait [html] [--reply "…"] [--timeout sec]` | (for the AI) Wait until the browser sends, then print the edit request. `--reply` answers the previous round |
-| `redpen pending [html]` | (for the AI) Print pending edit requests |
-| `redpen done [html] --reply "…" [--stop]` | (for the AI) Report the result to the browser and stop waiting. `--stop` turns the review page off too ("end the review") |
-| `redpen status [html] [--json]` | Server address · whether an AI is waiting · sent requests |
-| `redpen stop [html]` | Stop the review server (it also stops by itself after 2 hours without a browser) |
-| `redpen setup [--claude] [--codex] [--remove]` | Link the command + install / remove the skill |
+| `redpen <html>`, `redpen open <html>` | Open the review page. Options: `--port`, `--slide <selector>`, `--lang ko\|en`, `--no-open` |
+| `redpen status` | Server address, whether an AI is waiting, and what was sent (`--json`) |
+| `redpen stop` | Stop the review server. It also stops on its own after two hours without a browser |
+| `redpen setup` | Link the command and install the skill. `--claude` or `--codex` for just one, `--remove` to uninstall |
 
-Without `html`, the file you opened last is used. Exit codes of `wait`: 0 = got an edit request, 2 = `--timeout` reached.
+These are for the AI:
 
-### Language (English / 한국어)
+| Command | Description |
+|---|---|
+| `redpen wait` | Wait until the browser sends, then print the edit request. `--reply` answers the previous one, `--timeout` sets how long to wait (seconds) |
+| `redpen pending` | Print edit requests that haven't been applied yet |
+| `redpen done` | Report the result to the page with `--reply` and stop waiting. With `--stop`, the review page closes too |
 
-The page, the edit requests the AI receives and the command output come in English or Korean. By default Redpen follows your computer's language (on macOS, the system language). To choose:
+Without `html`, the file you opened last is used. `wait` exits with 0 when it gets an edit request and 2 when it times out.
 
-- `redpen open deck.html --lang en` — if the page is already open, the server restarts on the same address and open tabs switch language too
-- The `REDPEN_LANG=en` (or `ko`) environment variable — applies to every command
+## Language
 
-Each edit request is written in the language of the page it was sent from. Text inside the deck is passed on exactly as written.
+The page, the edit requests and the command output come in English and Korean. Redpen follows your computer's language by default. To pick one, add `--lang en` or set `REDPEN_LANG=en`. A page that is already open switches language at the same address. Text inside your deck is passed on as written, whatever the language.
 
-## Where data is stored
+## Data and security
 
-Review data lives next to the deck in `.redpen/<file name>/`, and the `.gitignore` inside keeps it out of git automatically.
+Marks and sent requests are stored next to the deck in `.redpen/<file name>/`, including the text the AI received (`rounds/0001.md` and so on). A `.gitignore` inside keeps the folder out of git.
 
-```
-slides/.redpen/index.html/
-  draft.json              marks in progress (saved automatically)
-  rounds/0001.json        a sent edit request (raw data)
-  rounds/0001.md          the prompt the AI receives
-  rounds/0001.delivered   who took it (wait / pending / clipboard)
-  rounds/0001.reply.json  the AI's reply
-  server.json · server.log · agent.json
-```
-
-## Security
-
-The review server listens on `127.0.0.1` only and rejects requests with a foreign Host or Origin (blocking DNS rebinding and writes from other sites). Other websites can't pull your deck files in through `<script>`, `<img>` and the like either (`Sec-Fetch-Site`, `Cross-Origin-Resource-Policy`). Files outside the deck folder and dot files / folders (`.redpen`, `.git`, `.env` …) are never served. Symbolic links inside the deck folder (e.g. a large `assets` folder) are followed.
+The review server only listens on your own machine (`127.0.0.1`) and ignores requests from other websites. It never serves files outside the deck folder, or dot files such as `.git` and `.env`.
 
 ## Troubleshooting
 
-- **The slide numbers are off** → `redpen open deck.html --slide "<slide element selector>"`
-- **It says AI offline** → run `/redpen` (Claude Code) or `$redpen` (Codex) in your AI session, or send first and then say "apply my review"
-- **The browser didn't open** → open the address printed in the terminal (`http://localhost:4545/…`) yourself
-- **A red "lost the connection" notice** → the review server has stopped. Run `redpen open <html>` again and open the new address (marks you were making are saved once it reconnects)
-- **I want to use the deck's own buttons or videos** → ⏸ Pause in the toolbar
-- **Server log** → `.redpen/<file name>/server.log`
+- Slide numbers are off: tell Redpen what a slide is with `--slide`.
+- The toolbar says "AI offline": run `/redpen` in your AI session, or send first and then say "apply my review".
+- The browser didn't open: open the address printed in the terminal (`http://localhost:4545/…`).
+- "Lost the connection to the review server": the server has stopped. Open the deck again with `redpen <html>`. Marks you were making are saved once it reconnects.
+- The server log is in `.redpen/<file name>/server.log`.
 
 ## Development
 
 ```bash
 npm install          # puppeteer-core for the tests (uses your installed Chrome)
 npm test             # unit tests
-npm run test:e2e     # browser end-to-end tests (CHROME_PATH=… to pick the browser, HEADFUL=1 to watch)
-npm run demo         # open the Korean example deck  (npm run demo:en for the English one)
-npm run screenshots  # regenerate the README's top image (docs/hero*.png)
-npm run media        # regenerate the README videos (docs/media/*.gif): record the real screen, then compose. Needs ffmpeg (FFMPEG=path)
+npm run test:e2e     # browser tests (CHROME_PATH picks the browser, HEADFUL=1 shows the window)
+npm run demo         # open the Korean example deck (npm run demo:en for English)
+npm run screenshots  # rebuild the image at the top of this README
+npm run media        # rebuild the README videos (needs ffmpeg, FFMPEG=path)
 ```
 
-Layout: `src/cli.mjs` (commands) · `src/server.mjs` (server, SSE) · `src/store.mjs` (file state) · `src/locate.mjs` (finding source locations) · `src/prompt.mjs` (the prompt) · `src/client/` (the browser overlay, dependency-free ES modules) · `src/client/i18n/` (Korean source text → English) · `skills/redpen/SKILL.md` (the Claude Code / Codex skill).
+To use a clone directly, run `node bin/redpen.mjs setup` in it. That links the `redpen` command into `~/.local/bin` (use `npm link` if that isn't on your PATH).
+
+The server and CLI are in `src/*.mjs`, and the in-page overlay is in `src/client/`, written as dependency-free ES modules.
