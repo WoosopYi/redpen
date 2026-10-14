@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✒️ 빨간펜 · redpen
+# <img src="docs/logo.svg" width="30" height="30" alt=""> 빨간펜 · redpen
 
 **AI가 만든 HTML 슬라이드, 화면에 표시하면 그 AI 세션이 고칩니다.**
 

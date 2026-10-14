@@ -1,6 +1,6 @@
 <div align="center">
 
-# ✒️ Redpen
+# <img src="docs/logo.svg" width="30" height="30" alt=""> Redpen
 
 **Mark fixes on your AI-made HTML slides — the same AI session applies them.**
 
