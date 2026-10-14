@@ -42,6 +42,7 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
   border: 0; border-radius: 10px; background: transparent; color: #3c4149; font-weight: 550; cursor: pointer;
   transition: background .12s, color .12s;
 }
+.tb .ico { display: flex; } /* a wrapped icon would otherwise sit on the text baseline, a little too high */
 .tb:hover { background: #f0f0f3; color: #1c2024; }
 .tb.on { background: #1c2024; color: #fff; }
 .tb.quit:hover { background: #feebec; color: #ce2c31; }

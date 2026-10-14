@@ -35,7 +35,7 @@ export function mountToolbar(A) {
   const aiLabel = h('span', { class: 'lbl' }, tr(AI_TEXT.offline[0]));
   const ai = h('span', { class: 'ai hide-paused', 'data-tip': tr(AI_TEXT.offline[1]) }, h('span', { class: 'dot' }), aiLabel);
   const sendBtn = h('button', { class: 'tb send hide-paused', 'data-tip': tr('AI에게 보내기 ({key})', { key: `${MOD}+Enter` }), onClick: () => A.send('agent') }, icon('send', 14), h('span', { class: 'lbl' }, tr('AI에게 보내기')));
-  const pauseIco = h('span', null, icon('pause', 15));
+  const pauseIco = h('span', { class: 'ico' }, icon('pause', 15));
   const pauseBtn = h('button', { class: 'tb pause', 'data-tip': tr('일시정지 — 표시를 숨기고 덱을 원래대로 조작'), onClick: () => A.togglePause() }, pauseIco);
   const quitBtn = h('button', { class: 'tb quit', 'data-tip': tr('종료 — 빨간펜 끄기'), onClick: () => A.quit() }, icon('power', 15));
   const logo = h('button', { class: 'logo', 'data-tip': tr('빨간펜 · 끌어서 옮기기 · 클릭하면 접기') }, icon('pen', 16), h('b', { 'data-paused': tr('일시정지') }, tr('빨간펜')));
