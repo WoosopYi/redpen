@@ -2,3 +2,6 @@ node_modules/
 .redpen/
 .DS_Store
 .omc/
+
+# README media pipeline (scripts/media)
+scripts/media/.cache/
