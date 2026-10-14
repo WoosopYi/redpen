@@ -43,7 +43,7 @@ export const trunc = (s, n) => {
 export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const uid = () => `it${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-export const isMac = /Mac|iPhone|iPad/.test(navigator.userAgentData?.platform || navigator.userAgent);
+export const isMac = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.userAgent); // Chrome says "macOS"
 export const MOD = isMac ? '⌘' : 'Ctrl';
 
 export function isEditable(node) {
