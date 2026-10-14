@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.mjs';
 import { loadSources, annotate } from './locate.mjs';
 import { renderRounds } from './prompt.mjs';
-import { readJSON } from './util.mjs';
+import { readJSON, writeJSON } from './util.mjs';
 import { itemSummary } from './client/summary.js';
 import { tr, setLang } from './client/i18n/index.js';
 
@@ -363,6 +363,18 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, la
       });
     }
 
+    if (api === 'quit' && req.method === 'POST') {
+      // ⏻ in the browser: a waiting `redpen wait` ends ("the user closed the review"), and until the next
+      // `redpen open` a later `redpen wait` won't bring the server back on its own.
+      const at = Date.now();
+      if (store.readAgent()) writeJSON(store.file('stop'), { at, by: 'browser' });
+      writeJSON(store.file('closed.json'), { at, by: 'browser' });
+      log('quit from the browser');
+      sendJSON(res, 200, { ok: true });
+      setTimeout(() => close('quit'), 50);
+      return undefined;
+    }
+
     const md = /^round\/(\d+)\/markdown$/.exec(api);
     if (md && req.method === 'GET') {
       const round = store.readRound(Number(md[1]));
@@ -481,7 +493,7 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, la
   const idleCheck = setInterval(() => {
     if (!clients.size && idleMinutes > 0 && Date.now() - lastActivity > idleMinutes * 60 * 1000) {
       log('idle — shutting down');
-      close();
+      close('idle');
     }
   }, 60 * 1000);
 
@@ -489,13 +501,15 @@ export async function startServer({ deckPath, port = 4545, idleMinutes = 120, la
   log(`serving ${store.deckPath} at ${url}`);
 
   let closed = false;
-  function close() {
+  /** Shut down; open tabs are told first, so they hand the deck back instead of showing "connection lost". */
+  function close(reason = 'stop') {
     if (closed) return;
     closed = true;
     clearInterval(statePoll);
     clearInterval(idleCheck);
     clearTimeout(reloadTimer);
     watcher?.close();
+    if (reason !== 'restart') broadcast('closed', { reason });
     for (const res of clients) res.end();
     clients.clear();
     store.clearServer(process.pid);

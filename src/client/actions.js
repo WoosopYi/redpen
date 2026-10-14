@@ -2,7 +2,7 @@ import config from './config.js';
 import * as api from './api.js';
 import {
   S, emit, mutate, saveSoon, settleSaves, pauseSaving, discardPendingSave, nextSeq, clearHistory, ordered, numbering, plain, clientId,
-  undo as undoItems, redo as redoItems, TYPE_LABEL, TYPE_ICON,
+  undo as undoItems, redo as redoItems, TYPE_LABEL, TYPE_ICON, saveNow,
 } from './state.js';
 import { describeText, describeElement, describeRegion, anchorText, anchorElement, slideMeta } from './anchor.js';
 import { getSlides, slideOf, slideVisible, slideTitle, currentSlideIndex, goToSlide as navigate } from './slides.js';
@@ -44,6 +44,25 @@ export function togglePause() {
   toast(tr(S.paused ? '일시정지 — 표시를 숨기고 덱을 원래대로 조작해요' : '다시 표시하는 중'), { ms: 1800 });
 }
 
+/** The ⏻ button: save, tell a waiting AI the review is over, and shut the review server down. */
+export async function quit() {
+  if (editorBusy()) return;
+  const notes = [];
+  if (S.items.length || S.deckComment.trim()) notes.push(tr('아직 보내지 않은 표시는 저장돼서, 다음에 열면 그대로 있어요.'));
+  if (S.agent?.status === 'waiting') notes.push(tr('기다리던 AI 세션에도 리뷰가 끝났다고 알려요.'));
+  if (S.agent?.status === 'working') notes.push(tr('AI가 반영하던 수정 요청은 그대로 마무리돼요.'));
+  notes.push(tr('다시 켜려면 AI 세션에서 /redpen, 또는 redpen open 을 실행하세요.'));
+  const ok = await confirmDialog(tr('빨간펜을 끌까요?'), notes.join(' '), tr('종료'));
+  if (!ok) return;
+  await saveNow();
+  try {
+    await api.quit();
+  } catch {
+    /* already gone: just close up here */
+  }
+  hooks.ended();
+}
+
 export function togglePanel(force) {
   S.panelOpen = typeof force === 'boolean' ? force : !S.panelOpen;
   emit('panel');
@@ -57,7 +76,7 @@ export function onFocusChange() {
 export const notify = (msg, kind = 'info') => toast(msg, { kind, ms: 2200 });
 
 /** Wired up by main.js (layout.js and sketch.js import this module, so they register here instead). */
-export const hooks = { openLayout: null, openSketch: null, sketchOpen: () => false, deselect: () => {} };
+export const hooks = { openLayout: null, openSketch: null, sketchOpen: () => false, deselect: () => {}, ended: () => {} };
 
 /** An open editor holds unsaved text: nudge the user instead of throwing it away. */
 export function editorBusy() {

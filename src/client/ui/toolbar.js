@@ -36,7 +36,8 @@ export function mountToolbar(A) {
   const ai = h('span', { class: 'ai hide-paused', 'data-tip': tr(AI_TEXT.offline[1]) }, h('span', { class: 'dot' }), aiLabel);
   const sendBtn = h('button', { class: 'tb send hide-paused', 'data-tip': tr('AI에게 보내기 ({key})', { key: `${MOD}+Enter` }), onClick: () => A.send('agent') }, icon('send', 14), h('span', { class: 'lbl' }, tr('AI에게 보내기')));
   const pauseIco = h('span', null, icon('pause', 15));
-  const pauseBtn = h('button', { class: 'tb', 'data-tip': tr('일시정지 — 표시를 숨기고 덱을 원래대로 조작'), onClick: () => A.togglePause() }, pauseIco);
+  const pauseBtn = h('button', { class: 'tb pause', 'data-tip': tr('일시정지 — 표시를 숨기고 덱을 원래대로 조작'), onClick: () => A.togglePause() }, pauseIco);
+  const quitBtn = h('button', { class: 'tb quit', 'data-tip': tr('종료 — 빨간펜 끄기'), onClick: () => A.quit() }, icon('power', 15));
   const logo = h('button', { class: 'logo', 'data-tip': tr('빨간펜 · 끌어서 옮기기 · 클릭하면 접기') }, icon('pen', 16), h('b', { 'data-paused': tr('일시정지') }, tr('빨간펜')));
   const mini = h('span', { class: 'count mini zero' }, '0');
 
@@ -45,7 +46,7 @@ export function mountToolbar(A) {
     h('div', { class: 'seg' }, modes),
     slideBtn,
     h('div', { class: 'vsep hide-paused' }),
-    listBtn, ai, sendBtn, pauseBtn);
+    listBtn, ai, sendBtn, pauseBtn, quitBtn);
   ui.app.append(bar);
 
   // ---- drag to move / click to collapse ----
@@ -67,10 +68,19 @@ export function mountToolbar(A) {
     bar.classList.toggle('top', y < innerHeight / 2);
     return { x, y };
   };
+  /** Not moved by hand: centered — in the space left of the list panel while it is open, if the bar fits there. */
+  const PANEL_SPACE = 408; // panel width + margins (styles.js .panel)
+  const dodgePanel = () => {
+    if (bar.classList.contains('placed')) return;
+    const w = bar.offsetWidth;
+    const room = innerWidth - (S.panelOpen ? PANEL_SPACE : 0);
+    bar.style.left = w + 12 <= room ? `${room / 2}px` : '';
+  };
   if (saved?.collapsed) bar.classList.add('collapsed');
   if (saved?.x != null) requestAnimationFrame(() => applyPos(saved.x, saved.y));
   addEventListener('resize', () => {
     if (bar.classList.contains('placed')) applyPos(parseFloat(bar.style.left), parseFloat(bar.style.top));
+    else dodgePanel();
   });
   const store = (patch) => {
     saved = { ...(saved || {}), ...patch };
@@ -112,9 +122,11 @@ export function mountToolbar(A) {
     bar.style.left = bar.style.top = bar.style.bottom = '';
     saved = null;
     localStorage.removeItem(POS_KEY);
+    dodgePanel();
   });
 
   function update() {
+    dodgePanel();
     for (const b of modes) b.classList.toggle('on', b.dataset.mode === S.mode);
     bar.classList.toggle('paused', S.paused);
     pauseIco.replaceChildren(icon(S.paused ? 'play' : 'pause', 15));

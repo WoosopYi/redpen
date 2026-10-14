@@ -283,7 +283,7 @@ function renderTail(channel, deckPath) {
       tr('## 반영한 뒤'),
       tr('1. 결과를 알리고 다음 피드백을 기다리세요: {cmd}', { cmd: wait }),
       tr('   (Claude Code는 run_in_background로 실행 — 사용자가 다시 보내면 완료 알림이 옵니다)'),
-      tr('2. 사용자가 리뷰를 끝내자고 하면 대신: {cmd}', { cmd: done }),
+      tr('2. 사용자가 리뷰를 끝내자고 하면 대신: {cmd}', { cmd: `\`redpen done ${p} ${reply} --stop\`` }),
     ].join('\n');
   }
   if (channel === 'pending' || channel === 'file') {

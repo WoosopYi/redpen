@@ -29,6 +29,7 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
   user-select: none; -webkit-user-select: none; pointer-events: auto; white-space: nowrap;
 }
 .bar.placed { transform: none; }
+.bar:not(.placed) { transition: left .24s cubic-bezier(.2, .8, .2, 1); } /* slides aside with the list panel */
 .logo {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 8px;
   border: 0; border-radius: 10px; background: none; cursor: grab; color: #e5484d;
@@ -43,6 +44,7 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 }
 .tb:hover { background: #f0f0f3; color: #1c2024; }
 .tb.on { background: #1c2024; color: #fff; }
+.tb.quit:hover { background: #feebec; color: #ce2c31; }
 .seg { display: flex; gap: 2px; padding: 2px; background: #f2f2f5; border-radius: 11px; }
 .seg .tb { height: 28px; padding: 0 9px; border-radius: 9px; color: #60646c; }
 .seg .tb.on { background: #fff; color: #1c2024; box-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .06); }
@@ -417,6 +419,11 @@ kbd { font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 .onboard ul { margin: 0 0 10px; padding-left: 18px; color: rgba(255, 255, 255, .85); font-size: 12.5px; }
 .onboard kbd { background: rgba(255, 255, 255, .16); border-color: transparent; color: #fff; }
 .onboard .btn { height: 28px; background: #fff; border-color: #fff; }
+.rp.ended > :not(.toasts):not(.endcard) { display: none !important; }
+.endcard { left: 50%; bottom: 24px; transform: translateX(-50%); width: 340px; }
+.endcard p { margin: 0; color: rgba(255, 255, 255, .85); font-size: 12.5px; }
+.endcard p + p { margin-top: 6px; }
+.endcard code { color: #fff; background: rgba(255, 255, 255, .16); border-radius: 4px; padding: 1px 4px; white-space: nowrap; }
 `;
 
 // Styles injected into the deck document itself: text marks via the CSS Custom Highlight API.

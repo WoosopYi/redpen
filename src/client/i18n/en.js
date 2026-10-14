@@ -100,6 +100,8 @@ export default {
   'AI가 받음': 'Received by AI',
   '전달 대기': 'Waiting for AI',
   '리뷰 서버를 종료했습니다.': 'Stopped the review server.',
+  '사용자가 브라우저에서 빨간펜을 종료했습니다 (리뷰 끝). 다시 기다리지 마세요.': 'The user turned Redpen off in the browser (the review is over). Do not wait again.',
+  '리뷰 화면도 껐습니다.': 'Turned the review page off too.',
   '실행 중인 리뷰 서버가 없습니다.': 'No review server is running.',
   '{name} 스킬 제거: {path}': 'Removed the {name} skill: {path}',
   'redpen 명령 연결 제거: {path}': 'Removed the redpen command link: {path}',
@@ -135,6 +137,18 @@ export default {
   '일시정지 — 표시를 숨기고 덱을 원래대로 조작': 'Pause — hide the marks and use the deck as usual',
   '다시 시작 — 표시 보이기': 'Resume — show the marks',
   '빨간펜 · 끌어서 옮기기 · 클릭하면 접기': 'Redpen · drag to move · click to collapse',
+  '종료 — 빨간펜 끄기': 'Quit — turn Redpen off',
+
+  // ---- quitting ----
+  '빨간펜을 끌까요?': 'Turn Redpen off?',
+  '종료': 'Quit',
+  '아직 보내지 않은 표시는 저장돼서, 다음에 열면 그대로 있어요.': "Marks you haven't sent are saved and will be there next time.",
+  '기다리던 AI 세션에도 리뷰가 끝났다고 알려요.': 'The waiting AI session is told that the review is over.',
+  'AI가 반영하던 수정 요청은 그대로 마무리돼요.': 'The AI still finishes the request it is applying.',
+  '다시 켜려면 AI 세션에서 /redpen, 또는 redpen open 을 실행하세요.': 'To turn it on again, use /redpen in your AI session or run redpen open.',
+  '✒️ 빨간펜을 종료했어요': '✒️ Redpen is off',
+  '이 탭은 닫아도 돼요. 덱 파일은 그대로예요.': 'You can close this tab. Your deck files are untouched.',
+  '다시 켜려면 AI 세션에서 `/redpen`, 또는 터미널에서 `redpen open <파일>`': 'To turn it on again: `/redpen` in your AI session, or `redpen open <file>` in a terminal',
 
   // ---- panel ----
   '작성 중': 'Draft',

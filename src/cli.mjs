@@ -15,7 +15,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const LAST = path.join(process.env.REDPEN_HOME || path.join(os.homedir(), '.redpen'), 'last.json');
 
 const COMMANDS = new Set(['open', 'serve', 'wait', 'pending', 'done', 'status', 'stop', 'setup', 'help', 'version']);
-const BOOLEAN_FLAGS = new Set(['no-open', 'help', 'version', 'claude', 'codex', 'remove', 'json', 'quiet']);
+const BOOLEAN_FLAGS = new Set(['no-open', 'help', 'version', 'claude', 'codex', 'remove', 'json', 'quiet', 'stop']);
 
 const HELP = {
   ko: `✒️  redpen — HTML 슬라이드 빨간펜 리뷰
@@ -29,7 +29,8 @@ const HELP = {
   redpen wait [html] [--reply "…"] [--timeout 초]
                                       (AI용) 브라우저에서 보낼 때까지 기다렸다가 수정 요청 출력
   redpen pending [html]               (AI용) 대기 중인 수정 요청 출력
-  redpen done [html] --reply "…"      (AI용) 반영 결과를 브라우저에 알리고 대기 종료
+  redpen done [html] --reply "…" [--stop]
+                                      (AI용) 반영 결과를 브라우저에 알리고 대기 종료 (--stop: 리뷰 화면도 끄기)
   redpen status [html]                상태 보기
   redpen stop [html]                  리뷰 서버 종료
   redpen setup [--claude] [--codex] [--remove]
@@ -49,7 +50,9 @@ Usage
   redpen wait [html] [--reply "…"] [--timeout sec]
                                       (for the AI) wait until the browser sends, then print the edit request
   redpen pending [html]               (for the AI) print pending edit requests
-  redpen done [html] --reply "…"      (for the AI) report the result to the browser and stop waiting
+  redpen done [html] --reply "…" [--stop]
+                                      (for the AI) report the result to the browser and stop waiting
+                                      (--stop: turn the review page off too)
   redpen status [html]                show the status
   redpen stop [html]                  stop the review server
   redpen setup [--claude] [--codex] [--remove]
@@ -143,11 +146,16 @@ async function runningServer(store) {
   return info && info.deckPath === store.deckPath ? { ...s, lang: info.lang || 'ko' } : null;
 }
 
-async function stopServer(s) {
+/** SIGTERM turns redpen off (open tabs show "turned off"); SIGUSR2 is a restart (tabs reconnect to the new server). */
+async function stopServer(s, signal = 'SIGTERM') {
   try {
-    process.kill(s.pid, 'SIGTERM');
+    process.kill(s.pid, signal);
   } catch {
-    /* already gone */
+    try {
+      process.kill(s.pid, 'SIGTERM'); // no SIGUSR2 (Windows)
+    } catch {
+      /* already gone */
+    }
   }
   for (let i = 0; i < 50 && isAlive(s.pid); i++) await sleep(100);
 }
@@ -161,7 +169,7 @@ async function ensureServer(store, { port, lang = null, restart = false } = {}) 
   let s = await runningServer(store);
   if (s && restart && lang && s.lang !== lang) {
     port = port || s.port;
-    await stopServer(s);
+    await stopServer(s, 'SIGUSR2');
     s = null;
   }
   if (s) return { ...s, started: false };
@@ -202,6 +210,7 @@ function reply(store, message) {
 async function cmdOpen(pos, flags) {
   const deckPath = resolveDeck(pos[0]);
   const store = new Store(deckPath).ensure();
+  fs.rmSync(store.file('closed.json'), { force: true }); // opened again after ⏻ / done --stop
   if (typeof flags.slide === 'string') store.writeSettings({ slideSelector: flags.slide.trim() || null });
   const s = await ensureServer(store, { port: flags.port, lang: flags.lang, restart: true });
   writeJSON(LAST, { deckPath, at: Date.now() });
@@ -224,11 +233,12 @@ async function cmdServe(pos, flags) {
     lang: flags.lang || systemLang(),
     log,
   });
-  const stop = () => {
-    srv.close();
+  const stop = (reason) => {
+    srv.close(reason);
     setTimeout(() => process.exit(0), 50);
   };
-  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, stop);
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => stop('stop'));
+  if (process.platform !== 'win32') process.on('SIGUSR2', () => stop('restart')); // e.g. open --lang: tabs reconnect
   srv.server.on('redpen-closed', () => setTimeout(() => process.exit(0), 50));
 }
 
@@ -241,6 +251,12 @@ async function cmdWait(pos, flags) {
   // Register first so the browser goes straight from "AI 반영 중" to "AI 대기 중" when the reply lands.
   store.writeAgent({ pid: process.pid, since: startedAt });
   if (typeof flags.reply === 'string' && flags.reply.trim()) reply(store, flags.reply.trim());
+  if (readJSON(store.file('closed.json'), null)) {
+    // turned off with ⏻ (or done --stop): don't bring the review page back and wait for nobody
+    store.clearAgent(process.pid);
+    await write(`${tr('사용자가 브라우저에서 빨간펜을 종료했습니다 (리뷰 끝). 다시 기다리지 마세요.')}\n`);
+    process.exit(0);
+  }
 
   let server = null;
   try {
@@ -275,10 +291,13 @@ async function cmdWait(pos, flags) {
       process.exit(0);
     }
     const stop = readJSON(stopFile, null);
-    if (stop && stop > startedAt) {
+    const stopAt = typeof stop === 'number' ? stop : stop?.at;
+    if (stopAt && stopAt > startedAt) {
       fs.rmSync(stopFile, { force: true });
       cleanup();
-      await write(`${tr('리뷰를 마쳤습니다 (redpen done). 더 기다리지 않습니다.')}\n`);
+      await write(`${stop?.by === 'browser'
+        ? tr('사용자가 브라우저에서 빨간펜을 종료했습니다 (리뷰 끝). 다시 기다리지 마세요.')
+        : tr('리뷰를 마쳤습니다 (redpen done). 더 기다리지 않습니다.')}\n`);
       process.exit(0);
     }
     if (Date.now() > deadline) {
@@ -313,6 +332,15 @@ async function cmdDone(pos, flags) {
   out(rounds.length
     ? `✅ ${tr('{rounds} 수정 요청에 결과를 남겼습니다. 브라우저에 표시됩니다.', { rounds: rounds.map((n) => tr('{n}차', { n })).join(', ') })}`
     : tr('남길 수정 요청이 없습니다 (아직 보낸 적이 없음).'));
+  if (!flags.stop) return;
+  writeJSON(store.file('closed.json'), { at: Date.now(), by: 'agent' });
+  const s = await runningServer(store);
+  if (s) {
+    await sleep(2500); // let the open tab show the reply first; then it hands the deck back
+    await stopServer(s);
+    store.clearServer();
+  }
+  out(tr('리뷰 화면도 껐습니다.'));
 }
 
 async function cmdStatus(pos, flags) {

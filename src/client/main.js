@@ -7,13 +7,13 @@ import { mountRoot, setModeStyle, ui } from './ui/root.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPanel } from './ui/panel.js';
 import { initOverlay, scheduleRender, renderBurst, refreshHighlights } from './ui/overlay.js';
-import { popoverDirty } from './ui/popover.js';
+import { popoverDirty, closePopover } from './ui/popover.js';
 import { toast, banner, hideBanner, statusBanner, modalOpen } from './ui/feedback.js';
 import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, goToSlide, slideTitle } from './slides.js';
 import { h, rich } from './util.js';
 import { tr, setLang } from './i18n/index.js';
 import * as L from './layout.js';
-import { initSketch, openSketch, sketchOpen } from './sketch.js';
+import { initSketch, openSketch, sketchOpen, closeSketch } from './sketch.js';
 
 // Capture-phase listeners go in first, before the deck's deferred scripts register theirs.
 install();
@@ -217,16 +217,44 @@ async function init() {
   let saveFailed = false;
   let lostTimer = 0;
   let retryTimer = 0;
-  const showConnection = () => statusBanner(connLost || saveFailed
+  let ended = false;
+  let events = null;
+  const showConnection = () => !ended && statusBanner(connLost || saveFailed
     ? tr('⚠️ 리뷰 서버와 연결이 끊겨 표시가 저장되지 않고 있어요. 터미널에서 redpen open 을 다시 실행해 주세요.')
     : null);
   onSaveState((ok) => {
     saveFailed = !ok;
     showConnection();
     clearTimeout(retryTimer);
-    if (!ok) retryTimer = setTimeout(saveNow, 3000);
+    if (!ok && !ended) retryTimer = setTimeout(saveNow, 3000);
   });
-  api.connect({
+
+  // ⏻ here or in another tab, `redpen done --stop`, `redpen stop`: the review is over — hand the deck back.
+  const endSession = () => {
+    if (ended) return;
+    ended = true;
+    events?.close();
+    clearTimeout(lostTimer);
+    clearTimeout(retryTimer);
+    statusBanner(null);
+    hideBanner();
+    closePopover();
+    if (sketchOpen()) closeSketch();
+    L.deselect();
+    S.paused = true; // stop intercepting: the deck works as usual again
+    setModeStyle(S.mode, true);
+    emit('mode'); // layout previews and highlights come off
+    ui.layer.style.display = 'none';
+    ui.app.classList.add('ended');
+    ui.app.append(h('div', { class: 'onboard endcard' },
+      h('h4', null, tr('✒️ 빨간펜을 종료했어요')),
+      h('p', null, tr('이 탭은 닫아도 돼요. 덱 파일은 그대로예요.')),
+      h('p', null, rich(tr('다시 켜려면 AI 세션에서 `/redpen`, 또는 터미널에서 `redpen open <파일>`')))));
+  };
+  A.hooks.ended = endSession;
+
+  events = api.connect({
+    closed: () => endSession(),
     state: (st) => {
       A.onState(st);
       checkBuild(st.build, st.lang);

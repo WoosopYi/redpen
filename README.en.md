@@ -53,7 +53,7 @@ $redpen                       ← Codex
 let's review with redpen      ← plain words work too
 ```
 
-The AI opens the review page with `redpen open` and waits. Mark things, press **Send to AI** → the AI applies them → the page reloads → read the reply → mark again… To finish, tell the session "end the review".
+The AI opens the review page with `redpen open` and waits. Mark things, press **Send to AI** → the AI applies them → the page reloads → read the reply → mark again… To finish, press **⏻ Quit** at the right end of the toolbar, or tell the session "end the review".
 
 ### B. Open it yourself, apply later
 
@@ -92,6 +92,7 @@ Try it on the example deck: `redpen examples/basic-en/index.html --lang en` (or 
 | Undo / redo | ⌘Z / ⌘⇧Z (Windows: Ctrl) |
 | Send | **Send to AI** or ⌘Enter |
 | Use the deck as it is | ⏸ Pause (hides the marks and layout previews — handy for before/after comparisons) |
+| Turn Redpen off | ⏻ Quit — tells a waiting AI session the review is over and stops the review server. Unsent marks are saved and come back next time |
 | Move or collapse the toolbar | Drag / click the **Redpen** logo on its left (double-click: back to its place) |
 
 - Turn slides with the deck's own keys (arrows, space…). In Layout mode the arrow keys still turn slides while an element is selected, and the deck's own ← / → buttons outside the slides work in every mode.
@@ -163,7 +164,7 @@ For layout changes, the AI gets "how it is laid out now (which slot of a flex / 
 | `redpen <html>` / `redpen open <html>` | Open the review page (`--port`, `--slide <selector>`, `--lang ko\|en`, `--no-open`) |
 | `redpen wait [html] [--reply "…"] [--timeout sec]` | (for the AI) Wait until the browser sends, then print the edit request. `--reply` answers the previous round |
 | `redpen pending [html]` | (for the AI) Print pending edit requests |
-| `redpen done [html] --reply "…"` | (for the AI) Report the result to the browser and stop waiting |
+| `redpen done [html] --reply "…" [--stop]` | (for the AI) Report the result to the browser and stop waiting. `--stop` turns the review page off too ("end the review") |
 | `redpen status [html] [--json]` | Server address · whether an AI is waiting · sent requests |
 | `redpen stop [html]` | Stop the review server (it also stops by itself after 2 hours without a browser) |
 | `redpen setup [--claude] [--codex] [--remove]` | Link the command + install / remove the skill |

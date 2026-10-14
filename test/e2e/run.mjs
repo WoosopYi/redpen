@@ -527,8 +527,8 @@ async function edgeDeck(browser) {
 
   check(errors.length === 0, 'no page errors', errors);
 
-  title('if the review server goes away, the page says so');
-  cli('stop', deck);
+  title('if the review server dies (not turned off), the page says so');
+  process.kill(JSON.parse(cli('status', deck, '--json')).server.pid, 'SIGKILL'); // a crash: no goodbye to the tab
   await page.waitForFunction(() => !!document.getElementById('__redpen-host').shadowRoot.querySelector('.banner.status'), { timeout: 9000 }).catch(() => {});
   const warn = await $.shadow('.banner.status');
   check(warn?.visible && /연결이 끊겨/.test(warn.text), 'disconnected banner shown', warn?.text);
@@ -691,10 +691,10 @@ async function layoutDeck(browser) {
   await page.keyboard.press('Escape');
 
   title('pause shows the original deck; resume brings the previews back; undo works');
-  await $.clickShadow('.bar > .tb:last-child');
+  await $.clickShadow('.bar .tb.pause');
   c = await cards();
   check(!c[0].translate && !c[1].translate && await gapNow() === '40px', 'paused: deck untouched', { c, gap: await gapNow() });
-  await $.clickShadow('.bar > .tb:last-child');
+  await $.clickShadow('.bar .tb.pause');
   check((await cards())[0].translate && await gapNow() === '50px', 'resumed: previews back');
   const before = (await items()).map((i) => [i.target, i.L?.fit, !!i.L?.to, !!i.L?.reorder, !!i.L?.gap, !!i.L?.font]);
   await page.mouse.click(5, 5);
@@ -964,6 +964,65 @@ async function englishDeck(browser) {
   await page.close();
 }
 
+// ---- scenario 7: turning redpen off (⏻ in the toolbar, redpen done --stop) ---------------------
+
+async function quitDeck(browser) {
+  const dir = path.join(OUT, 'quit');
+  fs.cpSync(path.join(ROOT, 'examples', 'basic'), dir, { recursive: true, filter: (p) => !p.includes('.redpen') });
+  const file = path.join(dir, 'index.html');
+  const out = cli('open', file, '--no-open', '--port', '0');
+  const url = /(http:\/\/localhost:\d+\/\S+)/.exec(out)[1];
+  console.log(`\n=== quit: ${url}`);
+  const { page, errors } = await openPage(browser, `${url}#3`);
+  const $ = helpers(page);
+
+  title('⏻ asks first, then ends the waiting AI, stops the server and hands the deck back');
+  await $.dragSelect('그리고 이것은 매우 중요합니다.');
+  await page.keyboard.press('KeyD'); // a mark that is never sent
+  await sleep(300);
+  const waiter = startWait(file);
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'waiting', { timeout: 8000 }).catch(() => {});
+  check((await $.shadow('.bar .tb.quit'))?.visible, '⏻ at the end of the toolbar');
+  await $.clickShadow('.bar .tb.quit');
+  const dialog = await $.shadow('.modal');
+  check(dialog?.visible && /빨간펜을 끌까요/.test(dialog.text) && /저장돼서/.test(dialog.text) && /AI 세션에도/.test(dialog.text), 'a confirm says what happens', dialog?.text);
+  await $.clickShadowText('.modal .btn', '종료');
+  const res = await withTimeout(waiter.done, 8000, 'wait ends');
+  check(res.code === 0 && /빨간펜을 종료했습니다/.test(res.stdout), 'the waiting AI is told the review is over', res.stdout);
+  await sleep(400);
+  check((await $.shadow('.endcard'))?.visible && !(await $.shadow('.bar'))?.visible, 'the tab says "빨간펜을 종료했어요"; the toolbar is gone');
+  check(/리뷰 화면: 꺼짐/.test(cli('status', file)), 'the review server stopped');
+  const marks = await page.evaluate(() => [...CSS.highlights.keys()].reduce((n, k) => n + CSS.highlights.get(k).size, 0));
+  check(marks === 0, 'no marks painted over the deck any more', marks);
+  await page.keyboard.press('ArrowRight');
+  await sleep(300);
+  check(await $.activeSlide() === 3, 'the deck works as usual again');
+  await sleep(4500);
+  check(!(await $.shadow('.banner.status')), 'no "connection lost" warning afterwards');
+  const draft = JSON.parse(fs.readFileSync(path.join(dir, '.redpen', 'index.html', 'draft.json'), 'utf8'));
+  check(draft.items.length === 1, 'the unsent mark was saved', draft.items.length);
+
+  title('after ⏻ a stray `redpen wait` neither waits nor brings the server back');
+  const stray = startWait(file);
+  const r2 = await withTimeout(stray.done, 5000, 'stray wait exits');
+  check(r2.code === 0 && /빨간펜을 종료했습니다/.test(r2.stdout) && /리뷰 화면: 꺼짐/.test(cli('status', file)), 'exits at once, the server stays off', r2.stdout);
+
+  title('redpen open brings it back with the unsent mark; redpen done --stop turns it off again');
+  const out2 = cli('open', file, '--no-open', '--port', '0');
+  const url2 = /(http:\/\/localhost:\d+\/\S+)/.exec(out2)[1];
+  await page.goto(`${url2}#3`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__redpenStarted && document.getElementById('__redpen-host')?.shadowRoot?.querySelector('.bar'));
+  await sleep(500);
+  check((await $.items()).length === 1, 'the unsent mark is back');
+  const done = cli('done', file, '--reply', '마무리했어요', '--stop');
+  await sleep(600);
+  check(/리뷰 화면도 껐습니다/.test(done) && (await $.shadow('.endcard'))?.visible, 'done --stop: the open tab hands the deck back too', done);
+  check(/리뷰 화면: 꺼짐/.test(cli('status', file)), 'and the server is off');
+  const real = errors.filter((e) => !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(e));
+  check(real.length === 0, 'no page errors', real);
+  await page.close();
+}
+
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: process.env.HEADFUL ? false : 'new',
@@ -978,6 +1037,7 @@ try {
   await layoutDeck(browser);
   await switchDeck(browser);
   await englishDeck(browser);
+  await quitDeck(browser);
 } catch (err) {
   failures++;
   console.error(`\n💥 ${err.stack || err}`);

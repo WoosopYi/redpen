@@ -34,6 +34,9 @@ export const submit = (payload) => fetch(`${BASE}/submit`, {
   body: JSON.stringify(payload),
 }).then(json);
 
+/** Turn redpen off: the server tells a waiting AI the review is over, then shuts down. */
+export const quit = () => fetch(`${BASE}/quit`, { method: 'POST' }).then(json);
+
 export const roundMarkdown = (n, channel = 'clipboard') => fetch(`${BASE}/round/${n}/markdown?channel=${channel}`).then((r) => {
   if (!r.ok) throw new Error(String(r.status));
   return r.text();
