@@ -106,6 +106,8 @@ export default {
   '{name} 스킬 제거: {path}': 'Removed the {name} skill: {path}',
   'redpen 명령 연결 제거: {path}': 'Removed the redpen command link: {path}',
   '{name} 스킬 설치: {path}': 'Installed the {name} skill: {path}',
+  '{name} 스킬을 이 버전으로 바꿨습니다: {path}': 'Updated the {name} skill to this version: {path}',
+  'redpen 명령을 계속 쓰려면 한 번 설치해 두세요: {cmd}': 'To keep the redpen command around, install it once: {cmd}',
   'redpen 명령 연결: {path}': 'Linked the redpen command: {path}',
   'redpen 명령이 PATH에 없습니다. 이 폴더에서 `npm link` 를 실행하세요: {path}': 'The redpen command is not on your PATH. Run `npm link` in this folder: {path}',
   '사용: HTML을 만들던 AI 세션에서 "/redpen" (Claude Code) 또는 "$redpen" (Codex) 라고 입력하거나,': 'Usage: in the AI session that made the HTML, type "/redpen" (Claude Code) or "$redpen" (Codex),',

@@ -31,15 +31,17 @@ Each mark becomes an edit request with the slide number, the original text, its 
 
 ## Install
 
-Requires Node.js 18 or later. In this folder:
+Requires Node.js 18 or later.
 
 ```bash
-node bin/redpen.mjs setup
+npm install -g @woosopyi/redpen
+redpen setup
 ```
 
-- Links the `redpen` command (`~/.local/bin/redpen`, if it is on your PATH). Otherwise use `npm link`.
-- Installs the **redpen skill** for Claude Code (`~/.claude/skills/redpen`) and Codex (`~/.codex/skills/redpen`).
-- To remove: `redpen setup --remove` (removes both the skills and the command link).
+- This installs the `redpen` command; `redpen setup` adds the **redpen skill** to Claude Code (`~/.claude/skills/redpen`) and Codex (`~/.codex/skills/redpen`).
+- Update: `npm update -g @woosopyi/redpen` — the installed skills catch up with the new version on your next `redpen open`.
+- Remove: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
+- From a clone of this repository (for development): run `node bin/redpen.mjs setup` in it — the command gets linked as `~/.local/bin/redpen` (or use `npm link` if that is not on your PATH).
 
 ## Usage
 

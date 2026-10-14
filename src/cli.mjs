@@ -12,6 +12,12 @@ import { explicitLang, systemLang } from './lang.mjs';
 
 const BIN = fileURLToPath(new URL('../bin/redpen.mjs', import.meta.url));
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const PKG_NAME = readJSON(path.join(ROOT, 'package.json'), {}).name || 'redpen';
+const SKILL = path.join(ROOT, 'skills', 'redpen', 'SKILL.md');
+const skillDirs = (home = os.homedir()) => [
+  ['Claude Code', path.join(home, '.claude', 'skills', 'redpen')],
+  ['Codex', path.join(home, '.codex', 'skills', 'redpen')],
+];
 const LAST = path.join(process.env.REDPEN_HOME || path.join(os.homedir(), '.redpen'), 'last.json');
 
 const COMMANDS = new Set(['open', 'serve', 'wait', 'pending', 'done', 'status', 'stop', 'setup', 'help', 'version']);
@@ -207,8 +213,35 @@ function reply(store, message) {
 
 // ---- commands ----------------------------------------------------------------
 
+/** After `npm update -g`, the skill copies made by `redpen setup` would be stale: refresh the installed ones. */
+function syncSkills() {
+  let want;
+  try {
+    want = fs.readFileSync(SKILL, 'utf8');
+  } catch {
+    return;
+  }
+  for (const [name, dir] of skillDirs()) {
+    const file = path.join(dir, 'SKILL.md');
+    let have;
+    try {
+      have = fs.readFileSync(file, 'utf8');
+    } catch {
+      continue; // not installed for this agent
+    }
+    if (have === want) continue;
+    try {
+      fs.writeFileSync(file, want);
+      out(`✅ ${tr('{name} 스킬을 이 버전으로 바꿨습니다: {path}', { name, path: file })}`);
+    } catch {
+      /* read-only: leave it */
+    }
+  }
+}
+
 async function cmdOpen(pos, flags) {
   const deckPath = resolveDeck(pos[0]);
+  syncSkills();
   const store = new Store(deckPath).ensure();
   fs.rmSync(store.file('closed.json'), { force: true }); // opened again after ⏻ / done --stop
   if (typeof flags.slide === 'string') store.writeSettings({ slideSelector: flags.slide.trim() || null });
@@ -386,8 +419,12 @@ async function cmdStop(pos) {
   store.clearServer();
 }
 
+const inNpxCache = (p) => p.split(path.sep).includes('_npx');
+
+/** Is `cmd` installed on PATH? npx's own temporary bin folder doesn't count. */
 function onPath(cmd) {
   return (process.env.PATH || '').split(path.delimiter).some((dir) => {
+    if (!dir || inNpxCache(dir)) return false;
     try {
       fs.accessSync(path.join(dir, cmd), fs.constants.X_OK);
       return true;
@@ -400,9 +437,10 @@ function onPath(cmd) {
 async function cmdSetup(_pos, flags) {
   const home = os.homedir();
   const both = !flags.claude && !flags.codex;
+  const [claude, codex] = skillDirs(home);
   const targets = [];
-  if (flags.claude || both) targets.push(['Claude Code', path.join(home, '.claude', 'skills', 'redpen')]);
-  if (flags.codex || (both && fs.existsSync(path.join(home, '.codex')))) targets.push(['Codex', path.join(home, '.codex', 'skills', 'redpen')]);
+  if (flags.claude || both) targets.push(claude);
+  if (flags.codex || (both && fs.existsSync(path.join(home, '.codex')))) targets.push(codex);
 
   if (flags.remove) {
     for (const [name, dir] of targets) {
@@ -423,14 +461,16 @@ async function cmdSetup(_pos, flags) {
     return;
   }
 
-  const skill = path.join(ROOT, 'skills', 'redpen', 'SKILL.md');
   for (const [name, dir] of targets) {
     fs.mkdirSync(dir, { recursive: true });
-    fs.copyFileSync(skill, path.join(dir, 'SKILL.md'));
+    fs.copyFileSync(SKILL, path.join(dir, 'SKILL.md'));
     out(`✅ ${tr('{name} 스킬 설치: {path}', { name, path: path.join(dir, 'SKILL.md') })}`);
   }
 
-  if (!onPath('redpen')) {
+  if (!onPath('redpen') && inNpxCache(ROOT)) {
+    // run through npx: this copy lives in npx's cache, so don't link the command to it
+    out(`ℹ️  ${tr('redpen 명령을 계속 쓰려면 한 번 설치해 두세요: {cmd}', { cmd: `npm install -g ${PKG_NAME}` })}`);
+  } else if (!onPath('redpen')) {
     const localBin = path.join(home, '.local', 'bin');
     const pathDirs = (process.env.PATH || '').split(path.delimiter);
     if (pathDirs.includes(localBin)) {

@@ -31,15 +31,17 @@ AI가 만든 HTML 슬라이드를 **화면 위에 직접 표시해서** 고치�
 
 ## 설치
 
-Node.js 18 이상이 필요합니다. 이 폴더에서:
+Node.js 18 이상이 필요합니다.
 
 ```bash
-node bin/redpen.mjs setup
+npm install -g @woosopyi/redpen
+redpen setup
 ```
 
-- `redpen` 명령을 연결합니다 (`~/.local/bin/redpen`, PATH에 있을 때). 아니면 `npm link` 를 쓰세요.
-- Claude Code(`~/.claude/skills/redpen`)와 Codex(`~/.codex/skills/redpen`)에 **redpen 스킬**을 설치합니다.
-- 제거: `redpen setup --remove` (스킬과 명령 연결을 함께 지웁니다).
+- `redpen` 명령이 설치되고, `redpen setup`이 Claude Code(`~/.claude/skills/redpen`)와 Codex(`~/.codex/skills/redpen`)에 **redpen 스킬**을 넣습니다.
+- 업데이트: `npm update -g @woosopyi/redpen` — 설치된 스킬은 다음 `redpen open` 때 새 버전으로 맞춰집니다.
+- 제거: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
+- 저장소를 받아서 쓰려면(개발용): 저장소 폴더에서 `node bin/redpen.mjs setup` — 명령은 `~/.local/bin/redpen`으로 연결됩니다 (PATH에 없으면 `npm link`).
 
 ## 사용법
 

@@ -9,8 +9,14 @@ HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·�
   2. 커밋 메시지는 한국어 conventional commit: `feat: …`, `fix: …`, `docs: …`, `test: …`, `refactor: …` — 본문에 무엇을·왜.
   3. `git push` — origin은 비공개 저장소 `WoosopYi/html-redesign`, 기본 브랜치 `main`.
 - 푸시는 이 저장소의 로컬 credential helper가 WoosopYi 계정 토큰을 쓰도록 설정돼 있다. `gh auth switch`로 전역 계정을 바꾸지 않는다. gh API가 필요하면 `GH_TOKEN=$(gh auth token --user WoosopYi) gh …`.
-- 사용자의 실제 덱(예: `~/orca/projects/education/…`)은 직접 수정하지 않는다. 확인은 `/tmp`에 복사해서 한다.
+- 사용자의 실제 덱은 직접 수정하지 않는다. 확인은 `/tmp`에 복사해서 한다.
 - UI·CLI·프롬프트 문구는 한국어로 쓰고 `tr('한국어 원문', { 자리값 })`으로 감싼 뒤, 같은 문장을 키로 `src/client/i18n/en.js`에 영어를 넣는다 (빠지면 `test/unit/i18n.test.mjs`가 잡는다). 긴 글은 `pick({ ko, en })`. 브라우저 코드는 의존성 없는 ES 모듈로 유지한다.
+
+## 배포 (npm `@woosopyi/redpen` — 아직 배포 전, 저장소 공개도 준비가 끝난 뒤 한 번에)
+
+1. `package.json`·`package-lock.json`의 `version`을 올린다 (화면 코드가 바뀌면 열린 탭은 알아서 새로고침).
+2. `npm test` · `npm run test:e2e` · `npm pack --dry-run`으로 담길 파일 확인 (테스트·예제·문서 이미지는 빠져야 한다).
+3. `npm publish` — `publishConfig.access: public`이라 공개로 올라간다. 올린 버전은 되돌리기 어려우니 사용자 확인 후에만.
 
 ## 구조
 

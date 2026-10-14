@@ -1,7 +1,29 @@
 {
-  "name": "redpen",
-  "version": "0.2.0",
-  "description": "빨간펜 — HTML 슬라이드 위에 직접 표시한 수정 사항을 Claude Code·Codex 세션에 그대로 전달하는 리뷰 도구",
+  "name": "@woosopyi/redpen",
+  "version": "0.3.0",
+  "description": "Mark fixes right on your HTML slides in the browser and send them, with slide numbers, context and source lines, to the Claude Code / Codex session that made them (빨간펜).",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "agent-skill",
+    "ai",
+    "html",
+    "slides",
+    "presentation",
+    "review",
+    "feedback",
+    "redpen"
+  ],
+  "homepage": "https://github.com/WoosopYi/html-redesign#readme",
+  "bugs": {
+    "url": "https://github.com/WoosopYi/html-redesign/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WoosopYi/html-redesign.git"
+  },
+  "license": "MIT",
+  "author": "WoosopYi",
   "type": "module",
   "bin": {
     "redpen": "bin/redpen.mjs"
@@ -26,5 +48,7 @@
   "devDependencies": {
     "puppeteer-core": "^24.0.0"
   },
-  "license": "MIT"
+  "publishConfig": {
+    "access": "public"
+  }
 }

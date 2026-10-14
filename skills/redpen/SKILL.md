@@ -52,5 +52,5 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 - `redpen status <html>` 상태 확인 · `redpen stop <html>` 서버 종료.
 - 사용자가 빨간펜을 어떻게 끄는지 물으면: 툴바 맨 오른쪽 ⏻(종료)를 누르거나, 이 세션에 "리뷰 끝"이라고 하면 된다.
 - 사용자가 화면 언어를 바꾸고 싶어하면 `redpen open <html> --lang en`(또는 `ko`) — 열린 탭도 그 언어로 바뀐다.
-- `redpen` 명령이 없으면 사용자에게 설치를 안내한다: 빨간펜 저장소 폴더에서 `node bin/redpen.mjs setup` (또는 `npm link`).
+- `redpen` 명령이 없으면 사용자에게 설치를 안내한다: `npm install -g @woosopyi/redpen && redpen setup`.
 - 리뷰 데이터는 `<HTML 폴더>/.redpen/` 에 저장되며 git에서 자동 제외된다.
