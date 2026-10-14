@@ -6,7 +6,7 @@
 
 [한국어](README.md) · **English**
 
-<img src="docs/media/en/00-overview.gif" alt="Redpen at a glance: mark → send → the AI applies → check" width="100%">
+<p><img src="docs/hero-en.png" alt="Redpen on a slide: delete, replace, comment, area and layout marks, the list of marks on the right and the toolbar below" width="100%"></p>
 
 </div>
 
@@ -92,8 +92,6 @@ The **Copy** button in the list panel copies the edit request to the clipboard (
 Try it on the example deck: `redpen examples/basic-en/index.html --lang en` (or `npm run demo:en`).
 
 ## What you can do on the page
-
-![Redpen](docs/screenshot-en.png)
 
 | To… | Do this |
 |---|---|
@@ -237,7 +235,7 @@ npm install          # puppeteer-core for the tests (uses your installed Chrome)
 npm test             # unit tests
 npm run test:e2e     # browser end-to-end tests (CHROME_PATH=… to pick the browser, HEADFUL=1 to watch)
 npm run demo         # open the Korean example deck  (npm run demo:en for the English one)
-npm run screenshots  # regenerate docs/screenshot*.png
+npm run screenshots  # regenerate the README's top image (docs/hero*.png)
 npm run media        # regenerate the README videos (docs/media/*.gif): record the real screen, then compose. Needs ffmpeg (FFMPEG=path)
 ```
 

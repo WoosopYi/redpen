@@ -26,6 +26,6 @@ HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·�
   - `interact.js` 입력 처리(덱 단축키·클릭과 충돌 방지) · `actions.js` 표시 생성·편집·전송 · `state.js` 상태·되돌리기·자동 저장
   - `layout.js` 레이아웃 모드: 이동·순서·크기·글자/간격/여백/방향/열 — 덱에 인라인 스타일로 미리보기하고 정확히 원상복구
   - `sketch.js` 새 배치 스케치 · `anchor.js` 위치 기록·재부착 · `slides.js` 슬라이드 감지·이동 · `summary.js` 레이아웃 요약 문구
-- `examples/showcase/` 영상용 예제 덱(실제 덱 엔진·디자인, `index.html` 한국어 · `en.html` 영어) · `scripts/media/` README 영상: `record.mjs`(예제 덱에서 실제 화면 녹화) → `render.mjs`(`stage.html`로 합성 → `docs/media/<lang>/*.gif`). 화면이 바뀌면 `FFMPEG=<경로> npm run media`로 다시 만든다
+- `examples/showcase/` 영상용 예제 덱(실제 덱 엔진·디자인, `index.html` 한국어 · `en.html` 영어) · `scripts/media/` README 영상: `record.mjs`(예제 덱에서 실제 화면 녹화) → `render.mjs`(`stage.html`로 합성 → `docs/media/<lang>/*.gif`). 화면이 바뀌면 `FFMPEG=<경로> npm run media`로 다시 만든다. README 맨 위 이미지는 `npm run screenshots`(`scripts/screenshots.mjs` → `docs/hero*.png`, 제목 로고는 `docs/logo.svg`)
 - `skills/redpen/SKILL.md` Claude Code·Codex 공용 스킬 — 바꾸면 `node bin/redpen.mjs setup`으로 다시 설치
 - 테스트: `test/unit/*.test.mjs`(node:test), `test/e2e/run.mjs`(puppeteer-core + 설치된 Chrome)

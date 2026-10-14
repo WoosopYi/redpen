@@ -6,7 +6,7 @@
 
 **한국어** · [English](README.en.md)
 
-<img src="docs/media/ko/00-overview.gif" alt="빨간펜 한눈에 보기: 표시 → 보내기 → AI 반영 → 확인" width="100%">
+<p><img src="docs/hero.png" alt="빨간펜 화면: 슬라이드 위의 삭제·수정·코멘트·영역·레이아웃 표시, 오른쪽 표시 목록, 아래 도구 막대" width="100%"></p>
 
 </div>
 
@@ -90,8 +90,6 @@ redpen slides/index.html        # 폴더를 줘도 됩니다: redpen slides/
 목록 패널의 **복사** 버튼을 누르면 수정 요청이 클립보드에 복사됩니다 (보낸 기록에도 남습니다).
 
 ## 화면에서 하는 일
-
-![빨간펜 화면](docs/screenshot.png)
 
 | 하고 싶은 것 | 방법 |
 |---|---|
@@ -235,7 +233,7 @@ npm install        # 테스트용 puppeteer-core (설치된 Chrome 사용)
 npm test           # 단위 테스트
 npm run test:e2e   # 브라우저 E2E (CHROME_PATH=…로 브라우저 지정, HEADFUL=1로 보기)
 npm run demo       # 예제 덱 열기 (영어 예제: npm run demo:en)
-npm run screenshots # docs/screenshot*.png 다시 찍기
+npm run screenshots # README 맨 위 이미지(docs/hero*.png) 다시 찍기
 npm run media       # README 영상(docs/media/*.gif) 다시 만들기: 실제 화면 녹화 → 합성. ffmpeg 필요(FFMPEG=경로)
 ```
 

@@ -1,5 +1,6 @@
-// README screenshots, in both languages, from the current UI:
-//   npm run screenshots   → docs/screenshot.png (Korean UI, examples/basic) · docs/screenshot-en.png (English UI, examples/basic-en)
+// The README's top image, in both languages, from the current UI:
+//   npm run screenshots   → docs/hero.png (Korean UI, examples/basic) · docs/hero-en.png (English UI, examples/basic-en)
+// The review screen with every kind of mark, under a band with the name.
 // Works on temp copies of the example decks, so the repo's examples never get a .redpen folder.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,10 +20,16 @@ const CHROME = process.env.CHROME_PATH || [
 ].find((p) => fs.existsSync(p));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const env = { ...process.env, REDPEN_HOME: TMP };
+const FONTS = path.join(ROOT, 'examples', 'showcase', 'fonts');
+const LOGO = fs.readFileSync(path.join(ROOT, 'docs', 'logo.svg'), 'utf8');
+const W = 1440;
+const H = 900;
+const LETTERBOX = (H - (W * 9) / 16) / 2; // the deck's black bars above and below the 16:9 slide
+const BAND = 72; // added on top; the name sits in the middle of band + letterbox
 
 const SHOTS = [
   {
-    lang: 'ko', deck: 'basic', out: 'docs/screenshot.png',
+    lang: 'ko', deck: 'basic', out: 'docs/hero.png', name: '빨간펜', sub: 'redpen',
     remove: '그리고 이것은 매우 중요합니다.',
     replace: ['초안 작성', '초안 쓰기'],
     comment: ['잘하는 일', '제목을 "AI가 잘하는 일"로 바꿔줘'],
@@ -30,7 +37,7 @@ const SHOTS = [
     slide: '카드 두 개를 세로로 배치하고 아이콘을 넣어줘',
   },
   {
-    lang: 'en', deck: 'basic-en', out: 'docs/screenshot-en.png',
+    lang: 'en', deck: 'basic-en', out: 'docs/hero-en.png', name: 'Redpen',
     remove: 'And this is very important.',
     replace: ['First drafts', 'Rough drafts'],
     comment: ['Good at', 'Rename this to "What AI is good at"'],
@@ -46,7 +53,7 @@ async function shoot(browser, s) {
   const out = execFileSync(process.execPath, [BIN, 'open', file, '--no-open', '--port', '0', '--lang', s.lang], { encoding: 'utf8', env });
   const url = /(http:\/\/localhost:\d+\/\S+)/.exec(out)[1];
   const page = await browser.newPage();
-  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+  await page.setViewport({ width: W, height: H, deviceScaleFactor: 2 });
   await page.evaluateOnNewDocument(() => {
     localStorage.setItem('redpen:onboarded', '1');
     localStorage.setItem('redpen:layout-tip', '1');
@@ -139,10 +146,34 @@ async function shoot(browser, s) {
   await page.mouse.move(lead.x0 + 200, 20);
   await click('.bar .tb:not(.send):not(.hide-paused):not([data-mode])'); // list panel
   await sleep(500);
-  await page.screenshot({ path: path.join(ROOT, s.out) });
-  console.log(`📸 ${s.out}`);
+  const shot = await page.screenshot({ encoding: 'base64' });
   await page.close();
   execFileSync(process.execPath, [BIN, 'stop', file], { env, stdio: 'ignore' });
+  await hero(browser, shot, s);
+  console.log(`📸 ${s.out}`);
+}
+
+const fontFace = (family, file, weight) =>
+  `@font-face { font-family: "${family}"; font-weight: ${weight}; src: url(data:font/woff2;base64,${fs.readFileSync(path.join(FONTS, file)).toString('base64')}) format("woff2"); }`;
+
+// The screenshot under a band in the letterbox's own black, with the logo and the name in it.
+async function hero(browser, shot, s) {
+  const page = await browser.newPage();
+  await page.setViewport({ width: W, height: H + BAND, deviceScaleFactor: 2 });
+  await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+    ${fontFace('Pretendard', 'Pretendard-SemiBold.subset.woff2', 600)}
+    ${fontFace('Geist Mono', 'GeistMono-Variable.woff2', 400)}
+    body { margin: 0; }
+    .hero { position: relative; width: ${W}px; padding-top: ${BAND}px; background: #111; border-radius: 18px; overflow: hidden; }
+    .hero > img { display: block; width: 100%; }
+    .name { position: absolute; left: 80px; top: 0; height: ${BAND + LETTERBOX}px; display: flex; align-items: center; gap: 16px; color: #fff; }
+    .name svg { width: 46px; height: 46px; }
+    .name b { font: 600 46px/1 Pretendard; letter-spacing: -.03em; }
+    .name span { font: 400 22px/1 "Geist Mono"; color: #8b8b8b; margin: 10px 0 0 4px; }
+  </style><div class="hero"><img src="data:image/png;base64,${shot}"><div class="name">${LOGO}<b>${s.name}</b>${s.sub ? `<span>${s.sub}</span>` : ''}</div></div>`);
+  await page.evaluate(() => document.fonts.ready);
+  await (await page.$('.hero')).screenshot({ path: path.join(ROOT, s.out), omitBackground: true });
+  await page.close();
 }
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--window-size=1440,900', '--no-first-run', '--lang=en-US'] });

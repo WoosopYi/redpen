@@ -1,7 +1,7 @@
 // README 영상 합성: stage.html을 프레임마다 찍어 GIF(README용)와, 원하면 MP4(고화질)를 만든다.
-//   FFMPEG=<ffmpeg 경로> node scripts/media/render.mjs [ko|en ...] [00 01 02 03 04 ...] [--mp4] [--preview 1.5,6,9] [--workers 8]
+//   FFMPEG=<ffmpeg 경로> node scripts/media/render.mjs [ko|en ...] [01 02 03 04 ...] [--mp4] [--preview 1.5,6,9] [--workers 8]
 //   결과: docs/media/<lang>/<이름>.gif · (--mp4) scripts/media/.cache/out/<lang>/<이름>.mp4
-//   (00은 녹화 없는 개요, 01~04는 record.mjs의 녹화가 먼저 있어야 한다)
+//   (record.mjs의 녹화가 먼저 있어야 한다)
 //
 // 속도: Chrome은 이미 GPU로 그리고, 시간은 프레임을 찍는 데 든다. 그래서
 //   - 작업자마다 Chrome을 따로 띄운다 — puppeteer는 한 브라우저 안의 스크린샷을 한 번에 하나씩만 찍는다.
@@ -26,7 +26,7 @@ const CHROME = process.env.CHROME_PATH || [
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',
 ].find((p) => fs.existsSync(p));
-const NAMES = { '00': '00-overview', '01': '01-text', '02': '02-layout', '03': '03-areas-slides', '04': '04-send' };
+const NAMES = { '01': '01-text', '02': '02-layout', '03': '03-areas-slides', '04': '04-send' };
 const GIF = { width: 1280, fps: 15 };
 const MP4_FPS = 30;
 const CHUNK = 12; // 작업자가 한 번에 가져가는 프레임 수
