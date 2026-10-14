@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI와 함께 만드는 발표 자료</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="progress"><span></span></div>
+  <div id="viewport"><main id="stage" aria-live="polite"></main></div>
+  <div id="controls">
+    <button data-act="prev" title="이전 (←)">←</button>
+    <span class="cnt" id="cnt"></span>
+    <button data-act="next" title="다음 (→)">→</button>
+    <button data-act="grid" title="전체 목차 (G)">목차<kbd> G</kbd></button>
+    <button data-act="full" title="전체 화면 (F)">전체화면<kbd> F</kbd></button>
+    <button data-act="print" title="PDF 인쇄 (P)">PDF<kbd> P</kbd></button>
+  </div>
+  <div id="rotate">가로로 돌리면 크게 볼 수 있습니다 · 좌우로 밀어서 넘기기</div>
+  <div id="overview"></div>
+  <div id="lightbox"></div>
+  <div id="toast"></div>
+  <script src="slides.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

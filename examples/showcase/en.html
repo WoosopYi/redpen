@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Making Presentations with AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="progress"><span></span></div>
+  <div id="viewport"><main id="stage" aria-live="polite"></main></div>
+  <div id="controls">
+    <button data-act="prev" title="Previous (←)">←</button>
+    <span class="cnt" id="cnt"></span>
+    <button data-act="next" title="Next (→)">→</button>
+    <button data-act="grid" title="All slides (G)">Slides<kbd> G</kbd></button>
+    <button data-act="full" title="Full screen (F)">Full screen<kbd> F</kbd></button>
+    <button data-act="print" title="Print to PDF (P)">PDF<kbd> P</kbd></button>
+  </div>
+  <div id="rotate">Turn your phone sideways for a bigger view · swipe to turn slides</div>
+  <div id="overview"></div>
+  <div id="lightbox"></div>
+  <div id="toast"></div>
+  <script src="slides.en.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
