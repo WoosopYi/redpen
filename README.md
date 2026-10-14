@@ -1,18 +1,51 @@
-# ✒️ 빨간펜 (redpen)
+<div align="center">
+
+# ✒️ 빨간펜 · redpen
+
+**AI가 만든 HTML 슬라이드, 화면에 표시하면 그 AI 세션이 고칩니다.**
 
 **한국어** · [English](README.en.md)
 
-AI가 만든 HTML 슬라이드를 **화면 위에 직접 표시해서** 고치는 도구입니다.
-표시한 내용은 슬라이드 번호·원문·앞뒤 문맥·소스 `파일:행`이 담긴 수정 요청이 되어, **HTML을 만들던 바로 그 Claude Code·Codex 대화 세션**으로 전달됩니다.
+<img src="docs/media/ko/00-overview.gif" alt="빨간펜 한눈에 보기: 표시 → 보내기 → AI 반영 → 확인" width="100%">
 
-![빨간펜 화면](docs/screenshot.png)
+</div>
 
-- "7페이지 두 번째 문단의 '그리고…' 지워 줘"라고 설명하는 대신 → 드래그하고 **D**
-- 문구를 바꾸려면 → 드래그하고 **R**, 새 문구 입력
-- 지시가 필요하면 → 드래그하고 **C**, 그 자리에 코멘트
-- **레이아웃**은 **레이아웃** 모드에서 직접 끌어서 옮기고, 다른 칸 위에 놓아 순서를 바꾸고, 모서리로 크기를 바꿉니다. 글자·간격·여백도 버튼으로 조절하며 결과를 바로 미리 봅니다
-- 빈 공간은 **영역** 모드로 범위를 그려 "여기에 그림 추가", 슬라이드를 통째로 다시 짜려면 **새 배치 스케치**로 칸을 그려 지시
-- 다 표시했으면 **AI에게 보내기** → AI가 고치면 화면이 자동 새로고침되고 AI의 답장이 뜹니다
+AI로 만든 HTML 슬라이드는 초안은 빠르지만 고치기가 번거롭습니다. "7페이지 두 번째 문단의 '그리고…' 지워 줘"처럼 말로 설명하는 대신, 화면에서 드래그하고 키 하나로 표시하세요. 표시는 슬라이드 번호·원문·앞뒤 문맥·소스 `파일:행`이 담긴 수정 요청이 되어 **HTML을 만들던 바로 그 Claude Code·Codex 세션**으로 전달되고, AI가 고치면 화면이 저절로 새로고침되며 답장이 뜹니다.
+
+## 빠른 시작
+
+Node.js 18 이상이 필요합니다.
+
+```bash
+npm install -g @woosopyi/redpen
+redpen setup          # Claude Code·Codex에 redpen 스킬 설치
+```
+
+슬라이드를 만들던 AI 세션에서 `/redpen`(Claude Code) · `$redpen`(Codex), 또는 "빨간펜으로 리뷰하자"라고 하면 리뷰 화면이 열립니다.
+
+- 업데이트: `npm update -g @woosopyi/redpen` — 설치된 스킬은 다음 `redpen open` 때 새 버전으로 맞춰집니다.
+- 제거: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
+- 저장소를 받아서 쓰려면(개발용): 저장소 폴더에서 `node bin/redpen.mjs setup` — 명령은 `~/.local/bin/redpen`으로 연결됩니다 (PATH에 없으면 `npm link`).
+
+## 영상으로 보는 사용법
+
+### 1. 텍스트 고치기 — 드래그하고 D · R · C
+
+<img src="docs/media/ko/01-text.gif" alt="텍스트 고치기: 드래그하고 D로 삭제, R로 수정, C로 코멘트" width="100%">
+
+### 2. 레이아웃 바꾸기 — 끌어서 옮기고, 모서리로 키우기
+
+<img src="docs/media/ko/02-layout.gif" alt="레이아웃 바꾸기: 카드를 끌어 순서를 바꾸고 모서리로 키우기" width="100%">
+
+### 3. 영역과 슬라이드 — 빈 공간, 새 배치 스케치, 슬라이드 통째로
+
+<img src="docs/media/ko/03-areas-slides.gif" alt="영역 코멘트, 새 배치 스케치, 슬라이드 삭제 표시" width="100%">
+
+### 4. AI에게 보내기 — 같은 세션이 고치고, 화면이 다시 열립니다
+
+<img src="docs/media/ko/04-send.gif" alt="AI에게 보내기: AI 세션이 원문을 고치고 화면이 새로고침되며 답장이 뜸" width="100%">
+
+> 영상은 실제 화면 녹화입니다. 영상 속 덱은 [`examples/showcase`](examples/showcase)에 있어요 — 직접 열어 보기: `redpen examples/showcase/index.html`
 
 ## 동작 방식
 
@@ -29,21 +62,7 @@ AI가 만든 HTML 슬라이드를 **화면 위에 직접 표시해서** 고치�
 - AI 세션은 `redpen wait` 를 백그라운드로 실행해 두고 기다리므로, 사람은 브라우저만 보면서 여러 차례 주고받을 수 있습니다.
 - AI가 기다리고 있지 않아도 보낸 내용은 저장됩니다. 나중에 세션에서 "리뷰 반영해줘"라고 하면 이어서 반영합니다.
 
-## 설치
-
-Node.js 18 이상이 필요합니다.
-
-```bash
-npm install -g @woosopyi/redpen
-redpen setup
-```
-
-- `redpen` 명령이 설치되고, `redpen setup`이 Claude Code(`~/.claude/skills/redpen`)와 Codex(`~/.codex/skills/redpen`)에 **redpen 스킬**을 넣습니다.
-- 업데이트: `npm update -g @woosopyi/redpen` — 설치된 스킬은 다음 `redpen open` 때 새 버전으로 맞춰집니다.
-- 제거: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
-- 저장소를 받아서 쓰려면(개발용): 저장소 폴더에서 `node bin/redpen.mjs setup` — 명령은 `~/.local/bin/redpen`으로 연결됩니다 (PATH에 없으면 `npm link`).
-
-## 사용법
+## 시작하는 방법
 
 ### A. HTML을 만들던 AI 세션에서 이어서 (추천)
 
@@ -71,6 +90,8 @@ redpen slides/index.html        # 폴더를 줘도 됩니다: redpen slides/
 목록 패널의 **복사** 버튼을 누르면 수정 요청이 클립보드에 복사됩니다 (보낸 기록에도 남습니다).
 
 ## 화면에서 하는 일
+
+![빨간펜 화면](docs/screenshot.png)
 
 | 하고 싶은 것 | 방법 |
 |---|---|
@@ -215,6 +236,7 @@ npm test           # 단위 테스트
 npm run test:e2e   # 브라우저 E2E (CHROME_PATH=…로 브라우저 지정, HEADFUL=1로 보기)
 npm run demo       # 예제 덱 열기 (영어 예제: npm run demo:en)
 npm run screenshots # docs/screenshot*.png 다시 찍기
+npm run media       # README 영상(docs/media/*.gif) 다시 만들기: 실제 화면 녹화 → 합성. ffmpeg 필요(FFMPEG=경로)
 ```
 
 구성: `src/cli.mjs`(명령) · `src/server.mjs`(서버·SSE) · `src/store.mjs`(파일 상태) · `src/locate.mjs`(소스 위치 찾기) · `src/prompt.mjs`(프롬프트) · `src/client/`(브라우저 오버레이, 의존성 없는 ES 모듈) · `src/client/i18n/`(한국어 원문 → 영어) · `skills/redpen/SKILL.md`(Claude Code·Codex 스킬).

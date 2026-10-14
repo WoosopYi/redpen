@@ -1,18 +1,51 @@
+<div align="center">
+
 # ✒️ Redpen
+
+**Mark fixes on your AI-made HTML slides — the same AI session applies them.**
 
 [한국어](README.md) · **English**
 
-A tool for fixing AI-made HTML slides by **marking the fixes right on the page**.
-Each mark becomes an edit request with the slide number, the original text, its surrounding context and the source `file:line`, and goes straight back to **the same Claude Code or Codex session that made the HTML**.
+<img src="docs/media/en/00-overview.gif" alt="Redpen at a glance: mark → send → the AI applies → check" width="100%">
 
-![Redpen](docs/screenshot-en.png)
+</div>
 
-- Instead of typing "delete 'And this…' in the second paragraph on page 7" → drag over it and press **D**
-- To change wording → drag, press **R**, type the new text
-- When it needs an instruction → drag, press **C**, and leave a comment right there
-- For **layout**, switch to **Layout** mode: drag things to move them, drop them on another slot to reorder, and use the corners to resize. Font size, gap and padding have buttons too, and you see the result immediately
-- For empty space, draw a box in **Area** mode ("add a picture here"); to rebuild a whole slide, draw boxes in a **new layout sketch**
-- When you are done → **Send to AI**. Once the AI has made the changes, the page reloads by itself and the AI's reply pops up
+AI drafts HTML slides fast, but fixing them is tedious. Instead of typing "delete 'And this…' in the second paragraph on page 7", drag over it on the screen and press one key. Each mark becomes an edit request with the slide number, original text, surrounding context and source `file:line`, and goes to **the very Claude Code or Codex session that made the HTML**. When the AI is done, the page reloads by itself and its reply pops up.
+
+## Quick start
+
+Requires Node.js 18 or later.
+
+```bash
+npm install -g @woosopyi/redpen
+redpen setup          # adds the redpen skill to Claude Code and Codex
+```
+
+In the AI session that made the slides, type `/redpen` (Claude Code) or `$redpen` (Codex), or just say "let's review with redpen", and the review page opens.
+
+- Update: `npm update -g @woosopyi/redpen` — the installed skills catch up with the new version on your next `redpen open`.
+- Remove: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
+- From a clone of this repository (for development): run `node bin/redpen.mjs setup` in it — the command gets linked as `~/.local/bin/redpen` (or use `npm link` if that is not on your PATH).
+
+## See it in action
+
+### 1. Fix text — drag, then D · R · C
+
+<img src="docs/media/en/01-text.gif" alt="Fix text: drag and press D to delete, R to replace, C to comment" width="100%">
+
+### 2. Change the layout — drag to move, pull a corner to resize
+
+<img src="docs/media/en/02-layout.gif" alt="Change the layout: drag a card to reorder it and pull a corner to enlarge" width="100%">
+
+### 3. Areas and slides — empty space, layout sketches, whole slides
+
+<img src="docs/media/en/03-areas-slides.gif" alt="Area comment, new layout sketch and marking a slide for deletion" width="100%">
+
+### 4. Send to AI — the same session fixes it and the page comes back
+
+<img src="docs/media/en/04-send.gif" alt="Send to AI: the AI session edits the source, the page reloads and the reply pops up" width="100%">
+
+> These are real screen recordings. The deck in them is [`examples/showcase`](examples/showcase) — open it yourself: `redpen examples/showcase/en.html --lang en`
 
 ## How it works
 
@@ -29,21 +62,7 @@ Each mark becomes an edit request with the slide number, the original text, its 
 - The AI session keeps `redpen wait` running in the background, so you can go back and forth for several rounds while only looking at the browser.
 - Requests are saved even when no AI is waiting. Say "apply my review" in the session later and it picks them up.
 
-## Install
-
-Requires Node.js 18 or later.
-
-```bash
-npm install -g @woosopyi/redpen
-redpen setup
-```
-
-- This installs the `redpen` command; `redpen setup` adds the **redpen skill** to Claude Code (`~/.claude/skills/redpen`) and Codex (`~/.codex/skills/redpen`).
-- Update: `npm update -g @woosopyi/redpen` — the installed skills catch up with the new version on your next `redpen open`.
-- Remove: `redpen setup --remove && npm uninstall -g @woosopyi/redpen`
-- From a clone of this repository (for development): run `node bin/redpen.mjs setup` in it — the command gets linked as `~/.local/bin/redpen` (or use `npm link` if that is not on your PATH).
-
-## Usage
+## Ways to start
 
 ### A. Continue in the AI session that made the HTML (recommended)
 
@@ -73,6 +92,8 @@ The **Copy** button in the list panel copies the edit request to the clipboard (
 Try it on the example deck: `redpen examples/basic-en/index.html --lang en` (or `npm run demo:en`).
 
 ## What you can do on the page
+
+![Redpen](docs/screenshot-en.png)
 
 | To… | Do this |
 |---|---|
@@ -217,6 +238,7 @@ npm test             # unit tests
 npm run test:e2e     # browser end-to-end tests (CHROME_PATH=… to pick the browser, HEADFUL=1 to watch)
 npm run demo         # open the Korean example deck  (npm run demo:en for the English one)
 npm run screenshots  # regenerate docs/screenshot*.png
+npm run media        # regenerate the README videos (docs/media/*.gif): record the real screen, then compose. Needs ffmpeg (FFMPEG=path)
 ```
 
 Layout: `src/cli.mjs` (commands) · `src/server.mjs` (server, SSE) · `src/store.mjs` (file state) · `src/locate.mjs` (finding source locations) · `src/prompt.mjs` (the prompt) · `src/client/` (the browser overlay, dependency-free ES modules) · `src/client/i18n/` (Korean source text → English) · `skills/redpen/SKILL.md` (the Claude Code / Codex skill).
