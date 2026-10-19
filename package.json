@@ -14,13 +14,13 @@
     "feedback",
     "redpen"
   ],
-  "homepage": "https://github.com/WoosopYi/html-redesign#readme",
+  "homepage": "https://github.com/WoosopYi/redpen#readme",
   "bugs": {
-    "url": "https://github.com/WoosopYi/html-redesign/issues"
+    "url": "https://github.com/WoosopYi/redpen/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WoosopYi/html-redesign.git"
+    "url": "git+https://github.com/WoosopYi/redpen.git"
   },
   "license": "MIT",
   "author": "WoosopYi",

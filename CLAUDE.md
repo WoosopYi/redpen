@@ -1,4 +1,4 @@
-# html-redesign · 빨간펜(redpen)
+# redpen · 빨간펜
 
 HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·요소·영역·레이아웃), 그 표시를 Claude Code·Codex 세션에 수정 요청으로 전달하는 로컬 도구. 사용법은 README.md(영어, GitHub 첫 화면)와 README.ko.md(한국어).
 
@@ -7,7 +7,7 @@ HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·�
 - **기능 하나를 끝낼 때마다 커밋하고 푸시한다.** 여러 기능을 한 커밋에 섞지 않는다.
   1. `npm test` (단위 테스트) — 브라우저 쪽(`src/client/`)을 건드렸으면 `npm run test:e2e`도 돌린다.
   2. 커밋 메시지는 한국어 conventional commit: `feat: …`, `fix: …`, `docs: …`, `test: …`, `refactor: …` — 본문에 무엇을·왜.
-  3. `git push` — origin은 비공개 저장소 `WoosopYi/html-redesign`, 기본 브랜치 `main`.
+  3. `git push` — origin은 `WoosopYi/redpen`(예전 이름 html-redesign, 로컬 폴더 이름은 그대로), 기본 브랜치 `main`.
 - 푸시는 이 저장소의 로컬 credential helper가 WoosopYi 계정 토큰을 쓰도록 설정돼 있다. `gh auth switch`로 전역 계정을 바꾸지 않는다. gh API가 필요하면 `GH_TOKEN=$(gh auth token --user WoosopYi) gh …`.
 - 사용자의 실제 덱은 직접 수정하지 않는다. 확인은 `/tmp`에 복사해서 한다.
 - UI·CLI·프롬프트 문구는 한국어로 쓰고 `tr('한국어 원문', { 자리값 })`으로 감싼 뒤, 같은 문장을 키로 `src/client/i18n/en.js`에 영어를 넣는다 (빠지면 `test/unit/i18n.test.mjs`가 잡는다). 긴 글은 `pick({ ko, en })`. 브라우저 코드는 의존성 없는 ES 모듈로 유지한다.
