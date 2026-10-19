@@ -1,6 +1,6 @@
 # html-redesign · 빨간펜(redpen)
 
-HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·요소·영역·레이아웃), 그 표시를 Claude Code·Codex 세션에 수정 요청으로 전달하는 로컬 도구. 사용법은 README.md.
+HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·요소·영역·레이아웃), 그 표시를 Claude Code·Codex 세션에 수정 요청으로 전달하는 로컬 도구. 사용법은 README.md(영어, GitHub 첫 화면)와 README.ko.md(한국어).
 
 ## 작업 규칙
 

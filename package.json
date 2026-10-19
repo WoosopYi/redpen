@@ -33,7 +33,7 @@
     "src",
     "skills",
     "README.md",
-    "README.en.md"
+    "README.ko.md"
   ],
   "engines": {
     "node": ">=18.17"

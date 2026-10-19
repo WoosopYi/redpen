@@ -1,206 +1,206 @@
 <div align="center">
 
-# <img src="docs/logo.svg" width="30" height="30" alt=""> 빨간펜
+# <img src="docs/logo.svg" width="30" height="30" alt=""> Redpen
 
-AI가 만든 HTML 슬라이드에 고칠 곳을 표시하면, 그 슬라이드를 만든 AI가 고쳐 줍니다.
+Mark up your AI-made HTML slides in the browser, and the AI that made them fixes them.
 
-**한국어** | [English](README.en.md)
+**English** | [한국어](README.ko.md)
 
-<p><img src="docs/hero.png" alt="빨간펜으로 슬라이드에 고칠 곳을 표시한 화면" width="100%"></p>
+<p><img src="docs/hero-en.png" alt="Slides marked up with Redpen" width="100%"></p>
 
 </div>
 
-AI로 HTML 슬라이드를 만들면 초안은 금방 나오는데, 고치는 데 오히려 시간이 더 듭니다. "7페이지 두 번째 문단에서 '그리고 이것은 매우 중요합니다' 지워 줘"처럼 어디를 고칠지 일일이 말로 설명해야 하니까요.
+Getting an AI to draft HTML slides is quick. Fixing them takes longer, because you have to describe every change in words: "on slide 7, delete 'And this is very important' from the second paragraph."
 
-빨간펜을 쓰면 브라우저에 띄운 슬라이드 위에 바로 표시할 수 있습니다. 문장을 드래그해서 지우거나 바꾸고, 카드를 끌어서 옮기고, 빈 곳에는 메모를 남깁니다. 표시한 내용은 슬라이드 번호와 원문, 소스 파일의 줄 번호가 담긴 수정 요청이 되어 슬라이드를 만든 Claude Code나 Codex 세션으로 넘어갑니다. AI가 파일을 고치면 브라우저가 새로고침되고 AI의 답장이 뜹니다.
+Redpen lets you mark the slides directly in the browser. Drag over a sentence to delete or replace it, drag a card to move it, or draw a box on empty space to leave a note. Each mark becomes an edit request with the slide number, the original text and the source file and line, and goes to the Claude Code or Codex session that made the slides. When the AI has edited the files, the page reloads and shows its reply.
 
-## 설치
+## Install
 
-Node.js 18 이상이 필요합니다.
+Requires Node.js 18 or later.
 
 ```bash
 npm install -g @woosopyi/redpen
 redpen setup
 ```
 
-`redpen setup`은 Claude Code와 Codex에 redpen 스킬을 설치합니다. 업데이트는 `npm update -g @woosopyi/redpen`으로 하고, 설치된 스킬은 다음에 빨간펜을 열 때 새 버전으로 바뀝니다. 지울 때는 `redpen setup --remove`를 실행한 다음 `npm uninstall -g @woosopyi/redpen`을 하면 됩니다.
+`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run `npm update -g @woosopyi/redpen`; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
 
-## 사용법
+## Usage
 
-슬라이드를 만들던 AI 세션에서 `/redpen`을 입력합니다. Codex에서는 `$redpen`이고, "빨간펜으로 리뷰하자"라고 말해도 됩니다.
+In the AI session that made your slides, type `/redpen` (or `$redpen` in Codex). You can also just say "let's review with redpen".
 
-AI가 브라우저에 리뷰 화면을 열고 기다립니다. 고칠 곳을 표시하고 'AI에게 보내기'를 누르면 AI가 파일을 고치고, 화면이 새로고침되면서 무엇을 바꿨는지 답장이 뜹니다. 몇 번이고 다시 표시해서 보낼 수 있고, 다 끝나면 툴바 맨 오른쪽의 종료(⏻) 버튼을 누르거나 AI에게 "리뷰 끝"이라고 하면 됩니다.
+The AI opens the review page in your browser and waits. Mark what you want changed and click Send to AI. The AI edits the files, the page reloads, and the AI's reply tells you what it changed. Repeat as many times as you like. When you're done, click the quit button (⏻) at the right end of the toolbar, or tell the AI "end the review".
 
-AI 세션 없이 직접 열어도 됩니다.
+You can also open a deck yourself:
 
 ```bash
 redpen slides/index.html
 ```
 
-이때 보낸 수정 요청은 저장해 뒀다가, 나중에 AI 세션에서 "리뷰 반영해줘"라고 하면 반영됩니다. 다른 AI 채팅에 붙여넣고 싶으면 목록 패널의 '복사' 버튼으로 수정 요청을 복사하세요.
+Whatever you send is saved, and the AI applies it later when you say "apply my review" in your session. If you use some other AI chat, the Copy button in the list panel copies the edit request so you can paste it there.
 
-### 텍스트 고치기
+### Fixing text
 
-고칠 문장을 드래그한 뒤 D를 누르면 삭제, R은 다른 문구로 바꾸기, C는 코멘트입니다.
+Drag over the text, then press D to delete it, R to replace it, or C to comment.
 
-<img src="docs/media/ko/01-text.gif" alt="문장을 드래그하고 D, R, C로 삭제, 수정, 코멘트하는 영상" width="100%">
+<img src="docs/media/en/01-text.gif" alt="Dragging over text and pressing D, R and C to delete, replace and comment" width="100%">
 
-### 레이아웃 바꾸기
+### Changing the layout
 
-레이아웃 모드에서 카드나 이미지를 클릭해 끌면 옮겨지고, 다른 칸 위에 놓으면 순서가 바뀝니다. 모서리를 끌면 크기가 바뀌고, 아래 막대에서 글자 크기와 간격도 조절할 수 있습니다. 화면에 보이는 건 미리보기이고, 실제 파일은 보낸 뒤에 AI가 고칩니다.
+In Layout mode, click a card or an image and drag it to move it. Drop it on another slot to change the order. Pull a corner to resize it, and use the bar below it for font size and spacing. What you see is a preview; the AI makes the real change in the files after you send.
 
-<img src="docs/media/ko/02-layout.gif" alt="카드를 끌어 순서를 바꾸고 모서리를 끌어 키우는 영상" width="100%">
+<img src="docs/media/en/02-layout.gif" alt="Dragging a card to reorder it and pulling a corner to enlarge it" width="100%">
 
-### 빈 공간과 슬라이드 전체
+### Empty space and whole slides
 
-영역 모드에서는 빈 곳에 상자를 그리고 "여기에 그림 추가" 같은 지시를 남깁니다. 툴바의 슬라이드 메뉴에서는 슬라이드 전체에 코멘트를 달거나, 지우거나, 순서를 옮길 수 있습니다. 칸을 그려서 새 배치를 스케치하는 것도 여기서 합니다.
+In Area mode, draw a box on empty space and write something like "add a picture here". The slide menu in the toolbar lets you comment on a whole slide, delete it or move it. You can also sketch a new layout for the slide there by drawing boxes.
 
-<img src="docs/media/ko/03-areas-slides.gif" alt="빈 곳에 지시를 남기고, 새 배치를 스케치하고, 슬라이드에 삭제 표시를 하는 영상" width="100%">
+<img src="docs/media/en/03-areas-slides.gif" alt="Leaving a note on empty space, sketching a new layout and marking a slide for deletion" width="100%">
 
-### AI에게 보내기
+### Sending to the AI
 
-보내면 기다리던 AI 세션이 받아서 소스를 고칩니다. 고치는 동안 툴바에 'AI 반영 중'이 뜨고, 끝나면 화면이 새로고침됩니다.
+The waiting AI session picks up your marks and edits the source. The toolbar shows "AI working" in the meantime, and the page reloads when it's done.
 
-<img src="docs/media/ko/04-send.gif" alt="보낸 수정 요청을 AI 세션이 반영하고 화면이 새로고침되는 영상" width="100%">
+<img src="docs/media/en/04-send.gif" alt="The AI session applying the edit request and the page reloading" width="100%">
 
-영상은 실제 화면을 녹화한 것입니다. 영상 속 덱은 [examples/showcase](examples/showcase)에 있으니 `redpen examples/showcase/index.html`로 직접 열어 볼 수 있습니다.
+These are real screen recordings. The deck in them is in [examples/showcase](examples/showcase), and you can open it with `redpen examples/showcase/en.html --lang en`.
 
-## 단축키
+## Keyboard shortcuts
 
-| 키 | 동작 |
+| Key | Action |
 |---|---|
-| `D` `R` `C` | 드래그한 글자를 삭제, 수정, 코멘트. 레이아웃 모드에서는 선택한 요소에 삭제 표시나 코멘트 |
-| `Alt+1` `Alt+2` `Alt+3` | 텍스트, 레이아웃, 영역 모드 |
-| `Shift+방향키` | 선택한 요소를 조금씩 옮기기 (`Alt`를 같이 누르면 크게) |
-| `Alt+↑` `Alt+↓` | 바깥 요소, 안쪽 요소 선택 |
-| `⌘Z` `⌘⇧Z` | 되돌리기, 다시 하기 (Windows는 `Ctrl`) |
-| `⌘Enter` | AI에게 보내기 |
-| `Esc` | 선택 해제, 열린 창 닫기 |
+| `D` `R` `C` | Delete, replace or comment on the selected text. In Layout mode, mark the selected element for deletion or comment on it |
+| `Alt+1` `Alt+2` `Alt+3` | Text, Layout and Area mode |
+| `Shift+arrows` | Nudge the selected element (add `Alt` for bigger steps) |
+| `Alt+↑` `Alt+↓` | Select the parent or child element |
+| `⌘Z` `⌘⇧Z` | Undo, redo (`Ctrl` on Windows) |
+| `⌘Enter` | Send to AI |
+| `Esc` | Deselect, close the open popup |
 
-슬라이드는 덱에 원래 있던 키(방향키, 스페이스)로 넘기면 됩니다. 레이아웃 모드에서 요소를 선택한 상태여도 방향키는 슬라이드를 넘깁니다.
+Turn slides with the deck's own keys (arrows, space). The arrow keys keep turning slides in Layout mode, even with an element selected.
 
-그 밖에 알아 두면 좋은 것들:
+A few more things:
 
-- 요소를 끌면 슬라이드 가운데나 다른 요소의 가장자리에 자석처럼 붙습니다. `Alt`를 누른 채 끌면 붙지 않습니다.
-- 표시는 자동으로 저장됩니다. 새로고침하거나 AI가 파일을 고친 뒤에도 같은 문구를 찾아 다시 붙고, 문구가 많이 바뀌어서 위치를 확신할 수 없으면 엉뚱한 곳에 붙이지 않고 '위치 못 찾음'으로 남깁니다.
-- 덱 전체에 대한 지시("전체적으로 글자를 키워 줘")는 목록 패널 맨 위의 '전체 지시사항' 칸에 씁니다.
-- 덱의 버튼이나 영상을 원래대로 쓰고 싶을 때는 툴바의 일시정지 버튼을 누르세요. 표시가 잠깐 숨겨져서, 고치기 전과 비교해 볼 때도 쓸 만합니다.
-- 툴바는 왼쪽 빨간펜 로고를 잡고 원하는 곳으로 옮길 수 있습니다. 로고를 클릭하면 접히고, 더블클릭하면 제자리로 돌아갑니다.
+- Elements you drag snap to the center of the slide and to the edges of other elements. Hold `Alt` while dragging to turn snapping off.
+- Marks are saved as you go. After a reload, or after the AI has edited the files, each mark finds its text again. If the text changed too much to be sure, the mark is flagged "not found on the page" instead of ending up in the wrong place.
+- Instructions for the whole deck ("make all the text bigger") go in the Deck-wide instructions box at the top of the list panel.
+- To use the deck's own buttons or videos, click the pause button in the toolbar. It also hides your marks, which helps when you want to compare with the original.
+- Drag the Redpen logo at the left of the toolbar to move the toolbar. Click the logo to collapse it, and double-click to put it back in place.
 
-## AI가 받는 수정 요청
+## What the AI receives
 
-보내기를 누르면 AI에게 이런 글이 전달됩니다. 슬라이드 내용이 HTML이 아니라 `slides.js` 같은 스크립트에 들어 있어도, 화면에 보이는 문구를 소스에서 찾아서 고칠 파일과 줄을 같이 알려 줍니다.
+When you send, the AI gets text like this. Even if the slide content lives in a script such as `slides.js` instead of the HTML, Redpen finds the visible text in the sources and tells the AI which file and line to edit.
 
 ```markdown
-# ✒️ 빨간펜 수정 요청 · 1차
+# ✒️ Redpen edit request · round 1
 
-- 대상 파일: `/Users/me/slides/data-101/index.html`
-- 내용이 들어 있는 소스: `index.html`, `slides.js`, `deck.js`
-- 슬라이드 번호 기준: 문서 순서상 `.slide` 요소 (총 4장) — "슬라이드 N"은 N번째 요소
-- 요청: 🗑 삭제 1 · ✏️ 수정 1 · 💬 코멘트 1
+- File: `/Users/me/slides/data-101/index.html`
+- Sources that hold the content: `index.html`, `slides.js`, `deck.js`
+- Slide numbering: `.slide` elements in document order (4 in total) — "Slide N" is the Nth one
+- Requests: 🗑 Delete 1 · ✏️ Replace 1 · 💬 Comment 1
 
-## 반영 규칙
-1. 🗑 삭제 — 표시된 텍스트·요소·슬라이드만 지웁니다. …
+## How to apply
+1. 🗑 **Delete** — remove only the marked text, element or slide. …
 
-## 슬라이드 3 · 「결측치 처리」
-슬라이드 위치 참고: `slides.js:23` 부근
+## Slide 3 · “Handling missing values”
+Slide location: around `slides.js:23`
 
-### #1 🗑 요소 삭제 `<div>`
-- 대상: `<div class="box">` — 내용: "삭제 결측이 적고 무작위일 때 행을 지웁니다. …"
-- 위치: DOM `div#deck > section.slide:nth-of-type(3) > div.body > div.two > div.box:nth-of-type(1)` · 소스: `slides.js:25`
+### #1 🗑 Delete element `<div>`
+- Target: `<div class="box">` — content: "Delete Drop rows when only a few values are missing at random. …"
+- Location: DOM `div#deck > section.slide:nth-of-type(3) > div.body > div.two > div.box:nth-of-type(1)` · Source: `slides.js:25`
 
-### #2 ✏️ 텍스트 수정
-- 원문: `평균·중앙값·최빈값`
-- 변경: `평균이나 중앙값`
-- 위치: DOM `… > div.box:nth-of-type(2) > p` · 소스: `slides.js:26`
+### #2 ✏️ Replace text
+- Original: `mean, median or mode`
+- New: `mean or median`
+- Location: DOM `… > div.box:nth-of-type(2) > p` · Source: `slides.js:26`
 
-### #3 💬 코멘트 · 텍스트
-- **지시:** 이 팁을 박스 위로 올려줘
-- 원문: `결측치는 지우기 전에 왜 비어 있는지부터 확인하세요`
-- 문맥: …분포가 왜곡될 수 있으니 주의하세요. 팁: ⟦결측치는 지우기 전에 왜 비어 있는지부터 확인하세요⟧. 데이터 분석 입문03…
-- 위치: DOM `div#deck > section.slide:nth-of-type(3) > div.body > p.note` · 소스: `slides.js:28`
+### #3 💬 Comment · text
+- **Instruction:** move this tip above the boxes
+- Original: `Before deleting missing values, find out why they are empty`
+- Context: …this can distort the distribution. Tip: ⟦Before deleting missing values, find out why they are empty⟧. Data Analysis 10103…
+- Location: DOM `div#deck > section.slide:nth-of-type(3) > div.body > p.note` · Source: `slides.js:28`
 ```
 
 <details>
-<summary>레이아웃을 바꿨을 때</summary>
+<summary>When you change the layout</summary>
 
-지금 배치(flex나 grid 안의 몇 번째 칸인지)와 바꿀 내용이 바뀌기 전과 후의 숫자로 같이 갑니다.
+The AI also gets the current layout (which slot of which flex or grid container) and what to change, with numbers before and after.
 
 ```markdown
-### #3 📐 레이아웃 변경 · 요소 `<div>`
-- 대상: `<div class="card">` — 내용: "조심할 일 최신 정보, 정확한 수치, …"
-- 지금: 슬라이드 오른쪽 가운데 (가로 51–94%, 세로 37–85%) · `div.cols` (grid · 2열) 안의 2번째 칸 (전체 2칸)
-- 바꿀 것:
-  - 순서: 2번째 → 1번째 — 「잘하는 일 초안 작성, …」 앞으로
-  - 크기: 110%로 키우기 — 비율 유지 (너비 43% → 47%)
-  - 글자 크기: 24px → 29px (+21%)
+### #3 📐 Layout change · element `<div>`
+- Target: `<div class="card">` — content: "Be careful with Recent facts, exact numbers, …"
+- Now: middle right of the slide (x 51–94%, y 37–85%) · the 2nd of 2 slots in `div.cols` (grid · 2 columns)
+- Change:
+  - Order: 2nd → 1st — before “Good at First drafts, …”
+  - Size: scale up to 110% — keep the proportions (width 43% → 47%)
+  - Font size: 24px → 29px (+21%)
 
-### #4 📐 새 배치 스케치
-- 이 슬라이드를 아래 칸 배치(와이어프레임)대로 다시 구성하세요. 번호는 읽는 순서입니다.
-  1. "큰 사진" — 왼쪽 가운데 (가로 5–50%, 세로 30–90%) · 지금 그 자리: `<div>` "잘하는 일 …"
-  2. "설명 세 줄" — 오른쪽 가운데 (가로 55–95%, 세로 30–90%) · 지금 그 자리: `<div>` "조심할 일 …"
+### #4 📐 New layout sketch
+- Rebuild this slide following the boxes below (a wireframe). The numbers are the reading order.
+  1. "Big photo" — middle left (x 5–50%, y 30–90%) · there now: `<div>` "Good at …"
+  2. "Three lines of text" — middle right (x 55–95%, y 30–90%) · there now: `<div>` "Be careful with …"
 ```
 
 </details>
 
-## 지원하는 덱
+## Supported decks
 
-`.slide` 요소를 겹쳐 놓고 한 장씩 보여 주는 덱(방향키나 `#5` 같은 주소로 이동), 스크롤해서 보는 덱, reveal.js, 1920×1080 무대를 `transform: scale()`로 줄여서 보여 주는 덱에서 씁니다. JS로 슬라이드를 만드는 덱이나 슬라이드가 없는 일반 웹페이지도 됩니다.
+Redpen works with decks that stack `.slide` elements and show one at a time (arrow keys or a `#5`-style address), scrolling decks, reveal.js, and decks that scale a 1920×1080 stage with `transform: scale()`. Decks built with JavaScript and plain web pages without slides work too.
 
-클릭하면 다음 장으로 넘어가는 덱이라도 글자를 드래그하거나 더블클릭할 때는 넘어가지 않습니다. 슬라이드 번호가 이상하게 잡히면 슬라이드 요소를 직접 지정하세요.
+Click-to-advance decks don't advance while you drag or double-click text. If the slide numbers come out wrong, tell Redpen what a slide is:
 
 ```bash
 redpen open deck.html --slide "section.page"
 ```
 
-## 명령어
+## Commands
 
-| 명령 | 설명 |
+| Command | Description |
 |---|---|
-| `redpen <html>`, `redpen open <html>` | 리뷰 화면 열기. 옵션: `--port`, `--slide <선택자>`, `--lang ko\|en`, `--no-open` |
-| `redpen status` | 서버 주소, AI가 기다리는 중인지, 보낸 기록 보기 (`--json`) |
-| `redpen stop` | 리뷰 서버 끄기. 브라우저가 2시간 동안 연결되지 않으면 알아서 꺼집니다 |
-| `redpen setup` | 명령 연결과 스킬 설치. `--claude`나 `--codex`로 한쪽만, `--remove`로 제거 |
+| `redpen <html>`, `redpen open <html>` | Open the review page. Options: `--port`, `--slide <selector>`, `--lang ko\|en`, `--no-open` |
+| `redpen status` | Server address, whether an AI is waiting, and what was sent (`--json`) |
+| `redpen stop` | Stop the review server. It also stops on its own after two hours without a browser |
+| `redpen setup` | Link the command and install the skill. `--claude` or `--codex` for just one, `--remove` to uninstall |
 
-아래는 AI가 쓰는 명령입니다.
+These are for the AI:
 
-| 명령 | 설명 |
+| Command | Description |
 |---|---|
-| `redpen wait` | 브라우저에서 보낼 때까지 기다렸다가 수정 요청 출력. `--reply`로 이전 요청에 답장, `--timeout`으로 기다릴 시간(초) 지정 |
-| `redpen pending` | 아직 반영하지 않은 수정 요청 출력 |
-| `redpen done` | `--reply`로 결과를 화면에 알리고 기다리기를 끝냄. `--stop`을 붙이면 리뷰 화면도 끔 |
+| `redpen wait` | Wait until the browser sends, then print the edit request. `--reply` answers the previous one, `--timeout` sets how long to wait (seconds) |
+| `redpen pending` | Print edit requests that haven't been applied yet |
+| `redpen done` | Report the result to the page with `--reply` and stop waiting. With `--stop`, the review page closes too |
 
-`html`을 생략하면 마지막으로 연 파일을 씁니다. `wait`는 수정 요청을 받으면 0, 시간이 다 되면 2로 끝납니다.
+Without `html`, the file you opened last is used. `wait` exits with 0 when it gets an edit request and 2 when it times out.
 
-## 언어
+## Language
 
-화면과 수정 요청, 명령 출력을 한국어와 영어로 쓸 수 있습니다. 기본으로는 컴퓨터의 언어 설정을 따르고, 바꾸고 싶으면 `--lang en`을 붙이거나 환경 변수 `REDPEN_LANG=en`을 설정하세요. 이미 열린 화면도 같은 주소 그대로 언어가 바뀝니다. 덱 안의 글은 언어와 상관없이 쓰인 그대로 전달됩니다.
+The page, the edit requests and the command output come in English and Korean. Redpen follows your computer's language by default. To pick one, add `--lang en` or set `REDPEN_LANG=en`. A page that is already open switches language at the same address. Text inside your deck is passed on as written, whatever the language.
 
-## 데이터와 보안
+## Data and security
 
-표시와 보낸 기록은 덱 옆의 `.redpen/<파일 이름>/` 폴더에 저장됩니다. AI가 받은 글도 `rounds/0001.md` 같은 파일로 남습니다. 폴더 안에 `.gitignore`가 있어서 git에는 올라가지 않습니다.
+Marks and sent requests are stored next to the deck in `.redpen/<file name>/`, including the text the AI received (`rounds/0001.md` and so on). A `.gitignore` inside keeps the folder out of git.
 
-리뷰 서버는 내 컴퓨터(`127.0.0.1`)에서만 열리고, 다른 사이트에서 보내는 요청은 받지 않습니다. 덱 폴더 밖의 파일이나 `.git`, `.env`처럼 점으로 시작하는 파일도 내보내지 않습니다.
+The review server only listens on your own machine (`127.0.0.1`) and ignores requests from other websites. It never serves files outside the deck folder, or dot files such as `.git` and `.env`.
 
-## 문제가 생기면
+## Troubleshooting
 
-- 슬라이드 번호가 맞지 않으면 `--slide`로 슬라이드 요소를 지정하세요.
-- 툴바에 'AI 미연결'이 보이면 AI 세션에서 `/redpen`을 실행하거나, 먼저 보내 놓고 "리뷰 반영해줘"라고 하면 됩니다.
-- 브라우저가 열리지 않으면 터미널에 나온 주소(`http://localhost:4545/…`)를 직접 여세요.
-- "리뷰 서버와 연결이 끊겨" 안내가 뜨면 서버가 꺼진 것입니다. `redpen <html>`로 다시 열면 됩니다. 쓰고 있던 표시는 다시 연결될 때 저장됩니다.
-- 서버 로그는 `.redpen/<파일 이름>/server.log`에 있습니다.
+- Slide numbers are off: tell Redpen what a slide is with `--slide`.
+- The toolbar says "AI offline": run `/redpen` in your AI session, or send first and then say "apply my review".
+- The browser didn't open: open the address printed in the terminal (`http://localhost:4545/…`).
+- "Lost the connection to the review server": the server has stopped. Open the deck again with `redpen <html>`. Marks you were making are saved once it reconnects.
+- The server log is in `.redpen/<file name>/server.log`.
 
-## 개발
+## Development
 
 ```bash
-npm install          # 테스트용 puppeteer-core (설치된 Chrome을 씁니다)
-npm test             # 단위 테스트
-npm run test:e2e     # 브라우저 테스트 (CHROME_PATH로 브라우저 지정, HEADFUL=1이면 창을 띄움)
-npm run demo         # 예제 덱 열기 (영어는 npm run demo:en)
-npm run screenshots  # README 맨 위 이미지 다시 만들기
-npm run media        # README 영상 다시 만들기 (ffmpeg 필요, FFMPEG=경로)
+npm install          # puppeteer-core for the tests (uses your installed Chrome)
+npm test             # unit tests
+npm run test:e2e     # browser tests (CHROME_PATH picks the browser, HEADFUL=1 shows the window)
+npm run demo         # open the Korean example deck (npm run demo:en for English)
+npm run screenshots  # rebuild the image at the top of this README
+npm run media        # rebuild the README videos (needs ffmpeg, FFMPEG=path)
 ```
 
-저장소에서 바로 쓰려면 저장소 폴더에서 `node bin/redpen.mjs setup`을 실행하세요. `redpen` 명령이 `~/.local/bin`에 연결됩니다(PATH에 없으면 `npm link`).
+To use a clone directly, run `node bin/redpen.mjs setup` in it. That links the `redpen` command into `~/.local/bin` (use `npm link` if that isn't on your PATH).
 
-서버와 CLI는 `src/*.mjs`에, 브라우저 쪽 화면은 `src/client/`에 있습니다. 브라우저 쪽은 의존성 없는 ES 모듈입니다.
+The server and CLI are in `src/*.mjs`, and the in-page overlay is in `src/client/`, written as dependency-free ES modules.
