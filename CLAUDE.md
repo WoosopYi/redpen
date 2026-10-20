@@ -12,9 +12,9 @@ HTML 슬라이드를 브라우저에서 직접 표시해 고치고(텍스트·�
 - 사용자의 실제 덱은 직접 수정하지 않는다. 확인은 `/tmp`에 복사해서 한다.
 - UI·CLI·프롬프트 문구는 한국어로 쓰고 `tr('한국어 원문', { 자리값 })`으로 감싼 뒤, 같은 문장을 키로 `src/client/i18n/en.js`에 영어를 넣는다 (빠지면 `test/unit/i18n.test.mjs`가 잡는다). 긴 글은 `pick({ ko, en })`. 브라우저 코드는 의존성 없는 ES 모듈로 유지한다.
 
-## 배포 (npm `@woosopyi/redpen` — 아직 배포 전, 저장소 공개도 준비가 끝난 뒤 한 번에)
+## 배포 (npm `@woosopyi/redpen` — 아직 배포 전. 저장소는 먼저 공개했고, 그동안 README는 GitHub에서 설치하는 명령을 안내한다)
 
-1. `package.json`·`package-lock.json`의 `version`을 올린다 (화면 코드가 바뀌면 열린 탭은 알아서 새로고침).
+1. `package.json`·`package-lock.json`의 `version`을 올린다 (화면 코드가 바뀌면 열린 탭은 알아서 새로고침). 첫 배포 때는 README.md·README.ko.md 설치 안내도 `npm install -g @woosopyi/redpen`, 업데이트는 `npm update -g @woosopyi/redpen`으로 되돌린다 (npm 페이지에 README가 그대로 실린다).
 2. `npm test` · `npm run test:e2e` · `npm pack --dry-run`으로 담길 파일 확인 (테스트·예제·문서 이미지는 빠져야 한다).
 3. `npm publish` — `publishConfig.access: public`이라 공개로 올라간다. 올린 버전은 되돌리기 어려우니 사용자 확인 후에만.
 

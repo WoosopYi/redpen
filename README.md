@@ -16,14 +16,16 @@ Redpen lets you mark the slides directly in the browser. Drag over a sentence to
 
 ## Install
 
-Requires Node.js 18 or later.
+Requires Node.js 18 or later and git.
 
 ```bash
-npm install -g @woosopyi/redpen
+npm install -g --allow-git=all github:WoosopYi/redpen
 redpen setup
 ```
 
-`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run `npm update -g @woosopyi/redpen`; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
+Redpen isn't on npm yet, so this installs it straight from GitHub. npm 12 and later refuse to install from git unless you add `--allow-git=all`. Older versions may warn that they don't know the option, but the install still works.
+
+`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run the same install command again; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
 
 ## Usage
 

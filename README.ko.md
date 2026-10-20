@@ -16,14 +16,16 @@ AI로 HTML 슬라이드를 만들면 초안은 금방 나오는데, 고치는 �
 
 ## 설치
 
-Node.js 18 이상이 필요합니다.
+Node.js 18 이상과 git이 필요합니다.
 
 ```bash
-npm install -g @woosopyi/redpen
+npm install -g --allow-git=all github:WoosopYi/redpen
 redpen setup
 ```
 
-`redpen setup`은 Claude Code와 Codex에 redpen 스킬을 설치합니다. 업데이트는 `npm update -g @woosopyi/redpen`으로 하고, 설치된 스킬은 다음에 빨간펜을 열 때 새 버전으로 바뀝니다. 지울 때는 `redpen setup --remove`를 실행한 다음 `npm uninstall -g @woosopyi/redpen`을 하면 됩니다.
+아직 npm에 올리기 전이라 GitHub에서 바로 설치합니다. npm 12부터는 `--allow-git=all`을 붙여야 git에서 받는 설치가 됩니다. 그보다 예전 npm은 모르는 옵션이라고 경고할 수 있지만 설치는 그대로 됩니다.
+
+`redpen setup`은 Claude Code와 Codex에 redpen 스킬을 설치합니다. 업데이트는 같은 설치 명령을 다시 실행하면 되고, 설치된 스킬은 다음에 빨간펜을 열 때 새 버전으로 바뀝니다. 지울 때는 `redpen setup --remove`를 실행한 다음 `npm uninstall -g @woosopyi/redpen`을 하면 됩니다.
 
 ## 사용법
 
