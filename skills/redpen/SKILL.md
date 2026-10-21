@@ -1,6 +1,9 @@
 ---
 name: redpen
-description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저에서 보며 사람이 직접 표시한 수정 사항(텍스트 삭제·수정·코멘트, 요소·영역·슬라이드 지정, 레이아웃)을 받아 HTML에 반영하는 리뷰 루프. 사용자가 "빨간펜", "redpen", "리뷰 모드", "화면 보면서 고칠게", "브라우저에서 표시할게", "슬라이드 수정 화면 열어줘", "리뷰 반영해줘", "피드백 반영해줘"라고 하거나, 방금 만든 HTML 슬라이드를 직접 보며 고치고 싶어할 때 사용한다. English: use when the user says "redpen", "red pen review", "review mode", "let me mark it up in the browser", "open the slide review", "apply my review" or "apply my feedback", or wants to fix the HTML slides just made by marking them on screen.
+description: >-
+  빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저에서 보며 사람이 직접 표시한 수정 사항(텍스트 삭제·수정·코멘트, 요소·영역·슬라이드 지정, 레이아웃)을 받아 HTML에 반영하는 리뷰 루프.
+  사용자가 "빨간펜", "redpen", "리뷰 모드", "화면 보면서 고칠게", "브라우저에서 표시할게", "슬라이드 수정 화면 열어줘", "리뷰 반영해줘", "피드백 반영해줘"라고 하거나, 방금 만든 HTML 슬라이드를 직접 보며 고치고 싶어할 때 사용한다.
+  English: use when the user says "redpen", "red pen review", "review mode", "let me mark it up in the browser", "open the slide review", "apply my review" or "apply my feedback", or wants to fix the HTML slides just made by marking them on screen.
 ---
 
 # 빨간펜 리뷰 루프
@@ -19,7 +22,9 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 ## 2. 수정 요청 기다리기
 
 - **Claude Code**: `redpen wait <html>` 을 Bash 도구의 `run_in_background: true` 로 실행한다. 사용자가 [AI에게 보내기]를 누르면 명령이 끝나고 완료 알림이 오며, 그 출력(stdout)이 곧 수정 요청이다. 기다리는 동안 턴을 마쳐도 된다.
-- **Codex 등 백그라운드 실행이 없는 환경**: `redpen wait <html> --timeout 540` 을 명령 타임아웃 10분(600000ms) 이상으로 실행한다. 종료 코드 2(시간 초과)면 같은 명령을 다시 실행한다. 사용자가 천천히 볼 것 같으면 "다 보내면 알려 주세요"라고 하고 턴을 끝낸 뒤, 알려 오면 `redpen pending <html>` 로 가져온다.
+- **Codex (Orca 포함)**: `exec_command`로 `redpen wait <html>` 을 실행한다 (`yield_time_ms: 1000`). 실행 중인 `session_id`가 반환되면 `write_stdin`으로 같은 세션의 출력을 계속 받는다 (`chars: ""`, `yield_time_ms: 10000`). 요청이 오기 전까지 턴을 끝내지 않는다. 출력된 수정 요청을 받으면 바로 3단계로 간다. 시간 제한을 따로 설정했다면 종료 코드 2일 때 대기를 다시 시작한다.
+- Codex의 명령 세션은 Claude Code의 백그라운드 완료 알림처럼 끝난 대화를 자동으로 재개하지 않는다. "보내면 알려 주세요"라고 턴을 끝내거나 `&`·`nohup`·출력 파일만 남기는 방식으로 대체하면 자동 수신이 끊긴다. `redpen status <html> --json`의 `agent`로 대기 프로세스가 실행 중인지 확인할 수 있다.
+- 지속 실행 도구가 없거나 사용자가 수동 반영을 원할 때만 아래 수동 모드를 쓴다. 자동 수신을 유지할 수 없다면 그 사실을 먼저 알린다.
 
 ## 3. 반영
 
@@ -36,8 +41,8 @@ description: 빨간펜(redpen) — HTML 슬라이드·페이지를 브라우저�
 
 ## 4. 결과 알리고 다음 라운드
 
-- 반영이 끝나면 `redpen wait <html> --reply "<무엇을 바꿨는지 1~3문장 · 못 한 항목은 이유>"` 를 다시 **백그라운드로** 실행한다. 답장이 브라우저에 뜨고 다음 수정 요청을 기다린다 → 2단계로.
-- 사용자에게도 같은 내용을 짧게 말한다. 답장(`--reply`)과 안내는 사용자가 쓰는 언어로 쓴다.
+- 반영이 끝나면 `redpen wait <html> --reply "<무엇을 바꿨는지 1~3문장 · 못 한 항목은 이유>"` 를 2단계와 같은 방식으로 실행한다. Claude Code는 백그라운드 실행, Codex는 명령 세션의 출력을 계속 받는다. 답장이 브라우저에 뜨고 다음 수정 요청을 기다린다.
+- 사용자에게도 같은 내용을 짧게 알리고 대기를 이어간다 (Codex는 commentary). `redpen done`만 실행하고 턴을 끝내면 다음 요청을 자동으로 받지 못한다. 답장(`--reply`)과 안내는 사용자가 쓰는 언어로 쓴다.
 - 사용자가 리뷰를 끝내자고 하면 `redpen done <html> --reply "<요약>" --stop` 을 실행한다 (기다리던 wait도 끝나고 리뷰 화면도 꺼진다).
 - `redpen wait` 이 "사용자가 브라우저에서 빨간펜을 종료했습니다"로 끝나면 사용자가 툴바의 ⏻ 종료로 리뷰를 끝낸 것이다. 다시 기다리지 말고 짧게 마무리한다 (다시 하려면 `redpen open` 부터).
 

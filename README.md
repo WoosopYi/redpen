@@ -33,6 +33,8 @@ In the AI session that made your slides, type `/redpen` (or `$redpen` in Codex).
 
 The AI opens the review page in your browser and waits. Mark what you want changed and click Send to AI. The AI edits the files, the page reloads, and the AI's reply tells you what it changed. Repeat as many times as you like. When you're done, click the quit button (⏻) at the right end of the toolbar, or tell the AI "end the review".
 
+In Codex (including Orca), the AI turn stays active while waiting for your review. Once the toolbar shows "AI waiting", send your marks without copying a prompt. Interrupting or ending the turn stops automatic receiving; use `$redpen` again to resume waiting.
+
 You can also open a deck yourself:
 
 ```bash
