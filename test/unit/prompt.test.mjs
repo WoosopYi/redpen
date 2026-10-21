@@ -56,7 +56,15 @@ test('renders a complete, ordered prompt', () => {
 });
 
 test('closing instructions depend on how the prompt is delivered', () => {
-  assert.match(renderRounds([round], { channel: 'pending' }), /redpen done "\/tmp\/deck\/index\.html"/);
+  for (const channel of ['wait', 'pending']) {
+    const md = renderRounds([round], { channel });
+    assert.match(md, /redpen wait "\/tmp\/deck\/index\.html" --reply/, `${channel} resumes automatic receiving`);
+    assert.match(md, /exec_command[\s\S]*session_id[\s\S]*write_stdin/, `${channel} explains how Codex keeps waiting`);
+    const commands = [...md.matchAll(/`(redpen (?:wait|done) [^`]+)`/g)].map((m) => m[1]);
+    assert.equal(commands.length, 2);
+    assert.match(commands[1], /^redpen done .* --stop$/, 'ending the review is a separate, explicit action');
+  }
+  assert.match(renderRounds([round], { channel: 'file' }), /redpen done "\/tmp\/deck\/index\.html"/);
   const clip = renderRounds([round], { channel: 'clipboard' });
   assert.doesNotMatch(clip, /redpen (wait|done)/);
   assert.match(clip, /요약해 주세요/);

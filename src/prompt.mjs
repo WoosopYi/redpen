@@ -278,15 +278,16 @@ function renderTail(channel, deckPath) {
   const reply = `--reply "${tr('<무엇을 바꿨는지 1~3문장 · 못 한 항목은 이유>')}"`;
   const wait = `\`redpen wait ${p} ${reply}\``;
   const done = `\`redpen done ${p} ${reply}\``;
-  if (channel === 'wait') {
+  if (channel === 'wait' || channel === 'pending') {
     return [
       tr('## 반영한 뒤'),
       tr('1. 결과를 알리고 다음 피드백을 기다리세요: {cmd}', { cmd: wait }),
       tr('   (Claude Code는 run_in_background로 실행 — 사용자가 다시 보내면 완료 알림이 옵니다)'),
+      tr('   (Codex는 exec_command로 실행하고, 반환된 session_id를 write_stdin으로 계속 확인하세요. 빈 출력은 종료가 아닙니다. 사용자가 리뷰를 끝낼 때까지 턴을 유지하세요)'),
       tr('2. 사용자가 리뷰를 끝내자고 하면 대신: {cmd}', { cmd: `\`redpen done ${p} ${reply} --stop\`` }),
     ].join('\n');
   }
-  if (channel === 'pending' || channel === 'file') {
+  if (channel === 'file') {
     return [tr('## 반영한 뒤'), tr('결과를 브라우저에 알려 주세요: {cmd}', { cmd: done })].join('\n');
   }
   return tr('반영한 뒤 무엇을 바꿨는지 짧게 요약해 주세요.');

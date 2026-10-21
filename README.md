@@ -189,7 +189,7 @@ The review server only listens on your own machine (`127.0.0.1`) and ignores req
 ## Troubleshooting
 
 - Slide numbers are off: tell Redpen what a slide is with `--slide`.
-- The toolbar says "AI offline": run `/redpen` in your AI session, or send first and then say "apply my review".
+- The toolbar says "AI offline": run `/redpen` (`$redpen` in Codex), or send first and then say "apply my review and keep waiting". Codex must keep the turn active even when there are no new requests. Empty tool output does not mean the review ended.
 - The browser didn't open: open the address printed in the terminal (`http://localhost:4545/…`).
 - "Lost the connection to the review server": the server has stopped. Open the deck again with `redpen <html>`. Marks you were making are saved once it reconnects.
 - The server log is in `.redpen/<file name>/server.log`.

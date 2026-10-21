@@ -43,17 +43,29 @@ test('pending prints nothing-to-do, then delivers a round exactly once', () => {
   const out = run('pending', deck).stdout;
   assert.match(out, /빨간펜 수정 요청 · 1차/);
   assert.match(out, /첫 요청/);
-  assert.match(out, /redpen done/);
+  assert.match(out, /redpen wait .* --reply/, 'recovering a queued request resumes automatic receiving');
   assert.equal(store.readRound(1).delivered.via, 'pending');
   // still unanswered → shown again (the agent may have lost context), but not re-claimed
   assert.match(run('pending', deck).stdout, /1차/);
 });
 
-test('done attaches the reply and closes the round', () => {
-  const out = run('done', deck, '--reply', '두 장으로 나눴어요').stdout;
-  assert.match(out, /1차/);
-  assert.equal(store.readRound(1).replies[0].message, '두 장으로 나눴어요');
-  assert.match(run('pending', deck).stdout, /없습니다/);
+test('the pending prompt restores waiting after replying to recovered feedback', async () => {
+  const prompt = run('pending', deck).stdout;
+  const next = /`redpen wait ("(?:[^"\\]|\\.)*") --reply/.exec(prompt);
+  assert.ok(next, 'pending recommends a command that continues the review');
+  const waiting = start('wait', JSON.parse(next[1]), '--reply', '두 장으로 나눴어요');
+  try {
+    for (let i = 0; i < 100 && !store.readAgent(); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.ok(store.readAgent(), 'AI waits for the next request after replying');
+    assert.equal(store.readRound(1).replies[0].message, '두 장으로 나눴어요');
+    assert.match(run('pending', deck).stdout, /없습니다/);
+    assert.ok(store.readAgent(), 'no new feedback does not end the wait');
+  } finally {
+    run('done', deck, '--reply', '끝');
+    const result = await waiting;
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /리뷰를 마쳤습니다/);
+  }
 });
 
 test('wait times out with exit code 2', async () => {

@@ -427,6 +427,7 @@ export default {
   '## 반영한 뒤': '## When you are done',
   '1. 결과를 알리고 다음 피드백을 기다리세요: {cmd}': '1. Report back and wait for the next feedback: {cmd}',
   '   (Claude Code는 run_in_background로 실행 — 사용자가 다시 보내면 완료 알림이 옵니다)': '   (in Claude Code, run it with run_in_background — you get a completion notice when the user sends again)',
+  '   (Codex는 exec_command로 실행하고, 반환된 session_id를 write_stdin으로 계속 확인하세요. 빈 출력은 종료가 아닙니다. 사용자가 리뷰를 끝낼 때까지 턴을 유지하세요)': '   (in Codex, use exec_command and keep polling the returned session_id with write_stdin. Empty output does not mean the review ended. Keep the turn active until the user ends the review)',
   '2. 사용자가 리뷰를 끝내자고 하면 대신: {cmd}': '2. If the user wants to end the review, run this instead: {cmd}',
   '결과를 브라우저에 알려 주세요: {cmd}': 'Report the result to the browser: {cmd}',
   '반영한 뒤 무엇을 바꿨는지 짧게 요약해 주세요.': 'When you are done, briefly summarize what you changed.',
