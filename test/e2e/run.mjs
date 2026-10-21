@@ -1023,6 +1023,147 @@ async function quitDeck(browser) {
   await page.close();
 }
 
+// Marks made while an earlier round is being applied must survive renumbering.
+async function slideIdentityDeck(browser) {
+  const dir = path.join(OUT, 'slide-identity');
+  fs.mkdirSync(dir, { recursive: true });
+  const deck = path.join(dir, 'index.html');
+  const data = {
+    A: ['앞에서 삭제할 장', '앞쪽의 독립적인 내용'],
+    B: ['중복 제목', 'B에만 있는 지역 설명'],
+    C: ['중복 제목', 'C에만 있는 상세한 설명'],
+    D: ['삭제할 대상', 'D에만 있는 마무리 설명'],
+    E: ['이미 사라진 대상', 'E에만 있는 별도의 설명'],
+  };
+  const html = (keys) => `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>slide identity</title><style>
+    body{margin:0;font:24px sans-serif}.slide{position:absolute;inset:0;padding:60px;visibility:hidden}.slide.active{visibility:visible}.card,.box{padding:12px;margin:12px;background:#eee}
+    </style></head><body><main id="deck">${keys.map((key, i) => `<section class="slide" id="slide-${i + 1}" data-key="${key}"><h1>${data[key][0]}</h1><p>${data[key][1]}</p><div class="card">반복 카드</div><div class="box">반복 레이아웃</div><p class="shared">모든 장의 반복 문구</p></section>`).join('\n')}</main><script>
+    const slides=[...document.querySelectorAll('.slide')];function go(){const i=Math.max(0,Math.min(slides.length-1,(Number(location.hash.slice(1))||1)-1));slides.forEach((s,n)=>s.classList.toggle('active',n===i))}addEventListener('hashchange',go);go();
+    </script></body></html>`;
+  fs.writeFileSync(deck, html(['A', 'B', 'C', 'D', 'E']));
+  const out = cli('open', deck, '--no-open', '--port', '0');
+  const url = /(http:\/\/localhost:\d+\/\S+)/.exec(out)[1];
+  const { page, errors } = await openPage(browser, `${url}#3`);
+  const $ = helpers(page);
+  const marks = () => page.evaluate(() => window.__redpen.S.items.map((it) => ({
+    id: it.id, type: it.type, target: it.target, index: it.slide?.index,
+    home: it._slide?.dataset.key || null, orphan: it._orphan, missing: it._slideMissing,
+  })));
+
+  title('new marks can be made while an earlier review round is being applied');
+  await page.evaluate(async () => {
+    const A = await import('/__redpen/app/actions.js');
+    A.toggleSlideDelete(document.querySelector('[data-key="A"]'));
+  });
+  const first = startWait(deck);
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'waiting');
+  await $.clickShadow('.bar .send');
+  await withTimeout(first.done, 8000, 'first round delivered');
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'working');
+  await page.evaluate(async () => {
+    const A = await import('/__redpen/app/actions.js');
+    const { S, mutate } = await import('/__redpen/app/state.js');
+    const { slideMeta, describeRegion, describeElement } = await import('/__redpen/app/anchor.js');
+    const get = (key) => document.querySelector(`[data-key="${key}"]`);
+    const B = get('B'), C = get('C');
+    const range = document.createRange();
+    range.selectNodeContents(C.querySelector('.shared'));
+    A.markText('delete', range);
+    A.deleteElement(C.querySelector('.card'));
+    A.toggleSlideDelete(get('D'));
+    A.toggleSlideDelete(get('E'));
+    const element = describeElement(C.querySelector('.box')).data;
+    mutate(() => S.items.push(
+      { id: 'region-B', type: 'comment', ...describeRegion(B, B.getBoundingClientRect()), comment: 'B 영역 코멘트', _slide: B },
+      { id: 'comment-C', type: 'comment', target: 'slide', slide: slideMeta(C), comment: 'C 슬라이드 코멘트', _slide: C },
+      { id: 'sketch-C', type: 'layout', target: 'sketch', slide: slideMeta(C), sketch: { boxes: [{ x: .1, y: .1, w: .4, h: .4, label: 'C 새 배치' }] }, _slide: C },
+      { id: 'layout-C', type: 'layout', ...element, layout: { from: element.pos, to: null, font: { from: 24, to: 26 } }, _el: C.querySelector('.box'), _slide: C },
+    ));
+  });
+  await sleep(700);
+  check((await marks()).length === 8, 'eight new marks saved while AI is working');
+
+  title('removing preceding slides follows identities despite duplicate titles, text and regenerated ids');
+  fs.writeFileSync(deck, html(['B', 'C', 'D']));
+  await page.waitForFunction(() => window.__redpen?.getSlides().els.length === 3 && window.__redpen.S.items.length === 8, { timeout: 8000 });
+  await sleep(750);
+  let list = await marks();
+  check(list.filter((it) => it.home === 'C').length === 5 && list.filter((it) => it.home === 'C').every((it) => it.index === 1 && !it.orphan), 'text, element, comment, sketch and layout stay on C', list);
+  check(list.find((it) => it.id === 'region-B')?.home === 'B', 'region stays on B');
+  check(list.some((it) => it.type === 'delete' && it.target === 'slide' && it.home === 'D' && it.index === 2), 'slide deletion follows D to its current index');
+  check(list.filter((it) => it.missing).length === 1 && list.find((it) => it.missing)?.orphan, 'deleted E stays unresolved instead of moving to another page');
+  check(await page.$eval('.slide.active', (el) => el.dataset.key) === 'C', 'reload keeps the reviewer on the same logical slide');
+  const persisted = JSON.parse(fs.readFileSync(path.join(dir, '.redpen/index.html/draft.json'), 'utf8'));
+  check(persisted.items.find((it) => it.id === 'comment-C')?.slide.index === 1, 'rebased metadata is autosaved');
+
+  title('engines that reuse positional DOM nodes cannot move marks to the replacement content');
+  await page.evaluate(async () => {
+    const { S, emit } = await import('/__redpen/app/state.js');
+    // Exercise a region on its own: no lost text Range or element can trigger re-anchoring for it.
+    window.__rpSavedMarks = S.items;
+    S.items = S.items.filter((it) => it.id === 'region-B');
+    emit('items');
+    const nodes = [...document.querySelectorAll('.slide')];
+    const contents = new Map(nodes.map((el) => [el.dataset.key, el.innerHTML]));
+    ['C', 'D', 'B'].forEach((key, i) => {
+      nodes[i].innerHTML = contents.get(key);
+      nodes[i].dataset.key = key;
+      nodes[i].classList.toggle('active', key === 'C');
+    });
+  });
+  await page.waitForFunction(() => window.__redpen.S.items.find((it) => it.id === 'region-B')?.slide.index === 2);
+  check((await marks())[0]?.home === 'B', 'a region-only draft also follows content changes in reused slide nodes');
+  await page.evaluate(async () => {
+    const { S, mutate } = await import('/__redpen/app/state.js');
+    const A = await import('/__redpen/app/actions.js');
+    mutate(() => { S.items = window.__rpSavedMarks; });
+    delete window.__rpSavedMarks;
+    A.anchorAll();
+  });
+  await page.waitForFunction(() => window.__redpen.S.items.find((it) => it.id === 'comment-C')?.slide.index === 0);
+  list = await marks();
+  check(list.filter((it) => it.home === 'C').length === 5 && list.find((it) => it.id === 'region-B')?.index === 2, 'marks follow logical slides instead of reused DOM slots', list);
+
+  title('live DOM reordering also rebases marks without reloading');
+  await page.evaluate(() => {
+    const deck = document.getElementById('deck');
+    deck.append(deck.querySelector('[data-key="C"]'));
+    [...deck.children].forEach((el, i) => { el.id = `slide-${i + 1}`; });
+  });
+  await page.waitForFunction(() => window.__redpen.S.items.find((it) => it.id === 'comment-C')?.slide.index === 2);
+  check((await marks()).filter((it) => it.home === 'C').every((it) => it.index === 2), 'all C marks follow its live DOM node');
+  await sleep(600);
+
+  title('deleting a marked slide holds its marks even when another copy of its heading remains');
+  fs.writeFileSync(deck, html(['B', 'D']));
+  await page.waitForFunction(() => window.__redpen?.getSlides().els.length === 2 && window.__redpen.S.items.length === 8, { timeout: 8000 });
+  await sleep(700);
+  list = await marks();
+  check(list.filter((it) => it.missing && it.orphan && !it.home).length === 6, 'all five C marks and E deletion are held', list);
+  check(list.find((it) => it.id === 'region-B')?.home === 'B', 'B never receives C marks with the same heading');
+
+  title('the last remaining slide keeps its identity and deleted-slide requests cannot delete it');
+  await page.evaluate(() => {
+    document.querySelector('[data-key="B"]').remove();
+    document.querySelector('[data-key="D"]').id = 'slide-1';
+  });
+  await page.waitForFunction(() => window.__redpen.S.items.filter((it) => it._slideMissing).length === 7);
+  list = await marks();
+  check(list.find((it) => it.home === 'D')?.index === 0 && list.filter((it) => it.missing).length === 7, 'D stays a slide; all other targets remain missing', list);
+  const second = startWait(deck, ['--reply', '앞선 요청을 반영했습니다.']);
+  await page.waitForFunction(() => window.__redpen.S.agent.status === 'waiting');
+  await $.clickShadow('.bar .send');
+  const result = await withTimeout(second.done, 8000, 'second round delivered');
+  const state = JSON.parse(cli('status', deck, '--json'));
+  const round = JSON.parse(fs.readFileSync(path.join(dir, '.redpen/index.html/rounds/0002.json'), 'utf8'));
+  check(round.items.filter((it) => it.slideMissing && it.orphan).length === 7, 'submitted requests preserve unresolved identities');
+  check((result.stdout.match(/- 이 슬라이드 전체를 지우세요\./g) || []).length === 1, 'only the surviving, correctly identified D gets a deletion instruction');
+  check(result.stdout.includes('다른 슬라이드에 적용하지 말고') && result.stdout.includes('표시 당시 슬라이드 내용'), 'AI receives the held-item guard and captured slide content');
+  check(state.rounds.length === 2 && errors.length === 0, 'two rounds, no browser errors', errors);
+  await page.close();
+  cli('stop', deck);
+}
+
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: process.env.HEADFUL ? false : 'new',
@@ -1034,6 +1175,7 @@ try {
   await basicDeck(browser);
   await jsDeck(browser);
   await edgeDeck(browser);
+  await slideIdentityDeck(browser);
   await layoutDeck(browser);
   await switchDeck(browser);
   await englishDeck(browser);

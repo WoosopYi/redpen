@@ -4,6 +4,7 @@
  */
 import { tr, pick, withLang } from './client/i18n/index.js';
 import { where } from './client/summary.js';
+import { positionalSlideId } from './client/slide-identity.js';
 
 export { where };
 
@@ -177,6 +178,11 @@ function renderItem(it) {
     else L.push(`- **${label}:** ${note}`);
   };
 
+  if (it.slideMissing) {
+    L.push(tr('- ⚠️ 대상 슬라이드를 식별하지 못했습니다. 이미 삭제됐을 수 있습니다. 같은 번호의 다른 슬라이드에 적용하지 말고 이 항목을 보류해 사용자에게 알려 주세요.'));
+    pushNote(tr('지시'));
+    return L.join('\n');
+  }
   if (it.orphan) L.push(tr('- ⚠️ 표시한 위치를 현재 화면에서 다시 찾지 못했습니다. 원문·문맥으로 찾아 주세요.'));
   if (it.type === 'comment') pushNote(tr('지시'));
   if (it.type === 'layout') {
@@ -229,14 +235,14 @@ const RULES = {
 1. 🗑 **삭제** — 표시된 텍스트·요소·슬라이드만 지웁니다. 지운 뒤 비게 되는 태그(빈 \`<li>\`·\`<p>\`·\`<div>\` 등)와 어색하게 남는 구두점·공백도 정리하세요.
 2. ✏️ **수정** — \`원문\`을 \`변경\`으로 바꿉니다. 굵게·링크 같은 주변 서식은 유지하세요.
 3. 💬 **코멘트** — **지시**를 해석해 반영합니다. 대상(텍스트·요소·영역·슬라이드)과 위치를 기준으로 판단하세요.
-4. 같은 문구가 여러 곳에 있으면 슬라이드 번호·문맥(⟦ ⟧ 안이 표시한 부분)·소스 위치로 정확한 곳을 고르세요. 슬라이드 번호와 소스 행은 모두 **편집 전** 기준입니다.
+4. 같은 문구가 여러 곳에 있으면 제목·슬라이드 식별 정보·문맥(⟦ ⟧ 안이 표시한 부분)·소스 위치로 정확한 곳을 고르세요. 슬라이드 번호와 소스 행은 **표시를 작성하던 화면** 기준이며, 앞선 요청으로 페이지가 삭제되거나 이동했을 수 있습니다. 번호나 숫자형 DOM id만으로 대상을 고르지 마세요. 대상 슬라이드가 이미 삭제됐거나 식별이 모호하면 다른 페이지에 대신 적용하지 말고 그 항목을 보류해 알려 주세요.
 5. 📐 **레이아웃** — 사람이 화면에서 직접 옮기고·키우고·순서를 바꿔 본 결과입니다. 그 모습이 되도록 HTML/CSS를 고치되, \`translate\`·절대 좌표로 흉내 내기보다 원래 방식(flex·grid·요소 순서·여백·글자 크기)에 맞게 구조를 바꾸세요. %·px 수치는 목표값 참고용입니다. **새 배치 스케치**는 칸의 위치·비율대로 슬라이드를 다시 구성하라는 뜻입니다.
 6. 요청하지 않은 부분은 바꾸지 마세요. 지시가 모호하면 가장 합리적으로 해석하고, 결과 보고에 그 해석을 적으세요.`,
   en: `## How to apply
 1. 🗑 **Delete** — remove only the marked text, element or slide. Then tidy up tags left empty (an empty \`<li>\`, \`<p>\`, \`<div>\`…) and stray punctuation or spaces.
 2. ✏️ **Replace** — change \`Original\` to \`New\`. Keep the surrounding formatting such as bold or links.
 3. 💬 **Comment** — interpret the **instruction** and apply it, judging by its target (text, element, area or slide) and position.
-4. If the same wording appears in several places, use the slide number, the context (the marked part is inside ⟦ ⟧) and the source location to pick the right one. Slide numbers and source lines all refer to the file **before** your edits.
+4. If the same wording appears in several places, use the title, slide identity, context (the marked part is inside ⟦ ⟧) and source location to pick the right one. Slide numbers and source lines refer to **the page where the marks were made**; earlier requests may already have deleted or moved slides. Never identify a slide by its number or generated numeric DOM id alone. If its target was deleted or cannot be identified unambiguously, leave that item unapplied and report it rather than applying it to another page.
 5. 📐 **Layout** — a person moved, resized or reordered things on screen to show the result they want. Edit the HTML/CSS so it looks like that, but instead of faking it with \`translate\` or absolute coordinates, change the structure the way it is built (flex, grid, element order, spacing, font size). The % and px values are targets for reference. A **new layout sketch** means: rebuild the slide following the position and proportions of its boxes.
 6. Don't change anything that wasn't requested. If an instruction is ambiguous, pick the most reasonable reading and mention it in your report.`,
 };
@@ -248,7 +254,7 @@ function renderRound(r, { rules }) {
   L.push(tr('- 대상 파일: {path}', { path: code(deck.path || '') }));
   if (deck.sourceFiles?.length > 1) L.push(tr('- 내용이 들어 있는 소스: {list}', { list: deck.sourceFiles.slice(0, 8).map(code).join(', ') }));
   if (deck.slideSelector) {
-    L.push(tr('- 슬라이드 번호 기준: 문서 순서상 {sel} 요소 (총 {n}장) — "슬라이드 N"은 N번째 요소', { sel: code(deck.slideSelector), n: deck.slideCount }));
+    L.push(tr('- 슬라이드 번호 기준: 표시 당시 문서 순서상 {sel} 요소 (총 {n}장) — 현재 순서가 달라졌다면 제목·내용으로 찾으세요', { sel: code(deck.slideSelector), n: deck.slideCount }));
   }
   L.push(tr('- 요청: {summary}', { summary: summary(items, r.deckComment) }));
   if (rules) L.push('', pick(RULES));
@@ -258,16 +264,19 @@ function renderRound(r, { rules }) {
   const groups = new Map();
   for (const it of items) {
     const key = it.slide && !it.slide.single && Number.isInteger(it.slide.index) ? it.slide.index : -1;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(it);
+    const identity = JSON.stringify([key, it.slide?.id, it.slide?.title, it.slide?.anchor?.body, !!it.slideMissing]);
+    if (!groups.has(identity)) groups.set(identity, { key, list: [] });
+    groups.get(identity).list.push(it);
   }
-  for (const [key, list] of [...groups].sort((a, b) => a[0] - b[0])) {
+  for (const { key, list } of [...groups.values()].sort((a, b) => a.key - b.key)) {
     const s = list[0].slide;
     L.push('');
     if (key === -1) L.push(tr('## 페이지'));
     else L.push(`${tr('## 슬라이드 {n}', { n: key + 1 })}${s?.title ? ` · ${tr('「{text}」', { text: clip(s.title, 60) })}` : ''}`);
+    if (s?.id && !(s.anchor?.positionalId ?? positionalSlideId(s.id, s.index))) L.push(tr('- 슬라이드 식별자: {id}', { id: code(s.id) }));
+    if (s?.anchor?.text) L.push(tr('- 표시 당시 슬라이드 내용: {text}', { text: code(clip(s.anchor.text, 600)) }));
     const hint = r.slideSources?.[key];
-    if (hint?.total) L.push(tr('슬라이드 위치 참고: {list} 부근', { list: hint.hits.slice(0, 3).map(loc).join(', ') }));
+    if (!list[0].slideMissing && hint?.total) L.push(tr('슬라이드 위치 참고: {list} 부근', { list: hint.hits.slice(0, 3).map(loc).join(', ') }));
     for (const it of list) L.push('', renderItem(it));
   }
   return L.join('\n');

@@ -94,15 +94,18 @@ export function mountPanel(A) {
     const groups = new Map();
     for (const it of items) {
       const key = it.slide && !it.slide.single && Number.isInteger(it.slide.index) ? it.slide.index : -1;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(it);
+      const identity = JSON.stringify([key, it.slide?.id, it.slide?.title, !!it._slideMissing]);
+      if (!groups.has(identity)) groups.set(identity, []);
+      groups.get(identity).push(it);
     }
     const out = [];
-    for (const [key, group] of groups) {
+    for (const group of groups.values()) {
       const s = group[0].slide;
+      const key = s && !s.single && Number.isInteger(s.index) ? s.index : -1;
+      const missing = group[0]._slideMissing;
       out.push(h('div', { class: 'group' },
-        h('div', { class: 'g-head', title: tr('이 슬라이드로 이동'), onClick: () => key >= 0 && A.goToSlide(key) },
-          key >= 0 ? tr('슬라이드 {n}', { n: key + 1 }) : tr('페이지'),
+        h('div', { class: 'g-head', title: tr('이 슬라이드로 이동'), onClick: () => !missing && key >= 0 && A.goToSlide(key) },
+          key >= 0 ? tr(missing ? '원래 슬라이드 {n}' : '슬라이드 {n}', { n: key + 1 }) : tr('페이지'),
           s?.title && h('span', { class: 't' }, `· ${trunc(s.title, 36)}`)),
         group.map((it) => {
           const row = h('div', {
@@ -115,7 +118,7 @@ export function mountPanel(A) {
           h('div', { class: 'r-main' },
             h('div', { class: 'r-type' }, icon(TYPE_ICON[it.type], 12), tr(TYPE_LABEL[it.type]),
               it.target !== 'text' && h('span', null, `· ${tr(TARGET_LABEL[it.target])}`),
-              it._orphan && h('span', { class: 'warn' }, `· ${tr('위치 못 찾음')}`)),
+              it._orphan && h('span', { class: 'warn' }, `· ${tr(it._slideMissing ? '대상 슬라이드 확인 필요' : '위치 못 찾음')}`)),
             h('div', { class: 'r-text' }, rowText(it))),
           h('button', {
             class: 'r-del',

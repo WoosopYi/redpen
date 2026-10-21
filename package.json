@@ -1,6 +1,6 @@
 {
   "name": "@woosopyi/redpen",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Mark fixes right on your HTML slides in the browser and send them, with slide numbers, context and source lines, to the Claude Code / Codex session that made them (빨간펜).",
   "keywords": [
     "claude-code",

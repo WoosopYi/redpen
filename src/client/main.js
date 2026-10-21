@@ -13,6 +13,7 @@ import { getSlides, invalidateSlides, slideOf, slideVisible, currentSlideIndex, 
 import { h, rich } from './util.js';
 import { tr, setLang } from './i18n/index.js';
 import * as L from './layout.js';
+import { anchorSlide, slideMeta } from './anchor.js';
 import { initSketch, openSketch, sketchOpen, closeSketch } from './sketch.js';
 
 // Capture-phase listeners go in first, before the deck's deferred scripts register theirs.
@@ -22,9 +23,11 @@ const POS_KEY = `redpen:pos:${config.deckPath}`;
 
 function savePosition(reason) {
   try {
+    const index = currentSlideIndex();
     sessionStorage.setItem(POS_KEY, JSON.stringify({
       t: Date.now(),
-      slide: currentSlideIndex(),
+      slide: index,
+      slideIdentity: index >= 0 ? slideMeta(getSlides().els[index]) : null,
       x: scrollX,
       y: scrollY,
       panel: S.panelOpen,
@@ -51,7 +54,9 @@ function restorePosition() {
   if (pos.mode) S.mode = pos.mode;
   setModeStyle(S.mode, S.paused);
   setTimeout(async () => {
-    if (pos.slide >= 0 && currentSlideIndex() !== pos.slide) await goToSlide(pos.slide);
+    const target = pos.slideIdentity ? anchorSlide(pos.slideIdentity) : null;
+    const index = target ? getSlides().els.indexOf(target) : pos.slide;
+    if (index >= 0 && currentSlideIndex() !== index) await goToSlide(index);
     if (pos.x || pos.y) scrollTo(pos.x, pos.y);
     scheduleRender();
   }, 120);
@@ -174,15 +179,22 @@ async function init() {
   // Slides and text can appear late (decks that render from JS, lazy content): re-anchor marks that are lost.
   // Throttled, not debounced: decks that update the DOM constantly (video clocks, counters) must not starve it.
   let reanchorTimer = 0;
-  const reanchorSoon = () => {
+  let markedContentChanged = false;
+  const reanchorSoon = (mutations) => {
+    if (Array.isArray(mutations) && mutations.some((m) => S.items.some((it) => it._slide?.contains(m.target)))) markedContentChanged = true;
     if (reanchorTimer) return;
     reanchorTimer = setTimeout(() => {
       reanchorTimer = 0;
+      const contentChanged = markedContentChanged;
+      markedContentChanged = false;
+      const before = getSlides().els;
       invalidateSlides();
-      const lost = S.items.some((it) => it._orphan || (it.target === 'text' && (!it._range || it._range.collapsed))
+      const after = getSlides().els;
+      const slidesChanged = before.length !== after.length || before.some((el, i) => el !== after[i]);
+      const lost = S.items.some((it) => it._orphan || (it.target === 'text' && (!it._range || it._range.collapsed || it._range.toString() !== it.text?.exact))
         || (it.target === 'element' && !it._el?.isConnected)
         || (it._slide && it._slide !== document.body && !it._slide.isConnected)); // slides re-rendered by the deck
-      if (lost) {
+      if (lost || slidesChanged || contentChanged) {
         A.anchorAll();
         emit('items');
       }

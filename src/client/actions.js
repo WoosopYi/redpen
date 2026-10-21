@@ -4,8 +4,8 @@ import {
   S, emit, mutate, saveSoon, settleSaves, pauseSaving, discardPendingSave, nextSeq, clearHistory, ordered, numbering, plain, clientId,
   undo as undoItems, redo as redoItems, TYPE_LABEL, TYPE_ICON, saveNow,
 } from './state.js';
-import { describeText, describeElement, describeRegion, anchorText, anchorElement, slideMeta } from './anchor.js';
-import { getSlides, slideOf, slideVisible, slideTitle, currentSlideIndex, goToSlide as navigate } from './slides.js';
+import { describeText, describeElement, describeRegion, anchorText, anchorElement, anchorSlide, slideMeta } from './anchor.js';
+import { getSlides, invalidateSlides, slideOf, slideVisible, slideTitle, currentSlideIndex, goToSlide as navigate } from './slides.js';
 import { openPopover, closePopover, popoverOpen, popoverDirty, shakePopover } from './ui/popover.js';
 import { toast, modal, confirmDialog } from './ui/feedback.js';
 import { setPicked, setRegionDraft, scheduleRender, refreshHighlights, hideSelBar } from './ui/overlay.js';
@@ -13,6 +13,7 @@ import { ui, setModeStyle } from './ui/root.js';
 import { h, uid, trunc, sleep, clamp, MOD, rich } from './util.js';
 import { tr } from './i18n/index.js';
 import { itemSummary } from './summary.js';
+import { slideContentKey } from './slide-identity.js';
 import { icon } from './icons.js';
 
 // ---- modes ----------------------------------------------------------------------
@@ -93,26 +94,39 @@ export function editorBusy() {
 // ---- anchoring ------------------------------------------------------------------
 
 export function anchorItem(it, cache = new Map()) {
+  const slides = getSlides();
+  const resolved = anchorSlide(it.slide);
+  const live = !resolved && it._slide?.isConnected && slides.set.has(it._slide) ? slideMeta(it._slide) : null;
+  // Some engines reuse DOM nodes by index. A connected node alone is not proof of identity.
+  const sameLiveContent = live && it.slide?.anchor && slideContentKey(live.anchor) === slideContentKey(it.slide.anchor)
+    && (live.total === it.slide.total || live.index !== it.slide.index);
+  const home = resolved || (sameLiveContent ? it._slide : null);
+  it._slide = home;
+  it._slideMissing = !!it.slide && !it.slide.single && !home;
   if (it.target === 'text') {
-    const live = it._range && !it._range.collapsed && it._range.toString() === it.text?.exact;
-    if (!live) it._range = anchorText(it, cache);
-    it._slide = it._range ? slideOf(it._range.commonAncestorContainer) : null;
+    const live = home && it._range?.startContainer.isConnected && !it._range.collapsed
+      && slideOf(it._range.commonAncestorContainer) === home && it._range.toString() === it.text?.exact;
+    if (!live) it._range = anchorText(it, cache, home);
+    it._orphan = !it._range;
   } else if (it.target === 'element') {
-    if (!it._el?.isConnected) it._el = anchorElement(it);
-    it._slide = it._el ? slideOf(it._el) : null;
+    if (!home || !it._el?.isConnected || slideOf(it._el) !== home) it._el = anchorElement(it, home);
+    it._orphan = !it._el;
   } else {
-    const { els, single } = getSlides();
-    it._slide = single ? document.body : els[it.slide?.index] || null;
+    it._orphan = !home;
   }
-  it._orphan = !(it._range || it._el || it._slide);
-  const { els } = getSlides();
-  const idx = it._slide ? els.indexOf(it._slide) : -1;
-  if (idx >= 0 && idx !== it.slide?.index) it.slide = slideMeta(it._slide);
+  if (!home) return false;
+  const meta = slideMeta(home);
+  if (JSON.stringify(meta) === JSON.stringify(it.slide)) return false;
+  it.slide = meta;
+  return true;
 }
 
 export function anchorAll() {
+  invalidateSlides();
   const cache = new Map();
-  for (const it of S.items) anchorItem(it, cache);
+  let changed = false;
+  for (const it of S.items) if (anchorItem(it, cache)) changed = true;
+  if (changed) saveSoon(); // persist rebased identities before another source update or reload
 }
 
 /** Text mark under a point (for clicking an existing highlight). */
@@ -299,7 +313,7 @@ export function slideComment(slideEl, anchor, onDone) {
 export function toggleSlideDelete(slideEl) {
   const meta = slideMeta(slideEl);
   if (meta.single) return;
-  const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it.slide?.index === meta.index);
+  const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it._slide === slideEl);
   if (marked) {
     removeItem(marked.id);
     return;
@@ -336,7 +350,7 @@ export function openSlideMove(slideEl, anchor) {
   const meta = slideMeta(slideEl);
   if (meta.single) return;
   const n = meta.total;
-  const existing = S.items.find((it) => it.type === 'layout' && it.target === 'slide' && it.slide?.index === meta.index);
+  const existing = S.items.find((it) => it.type === 'layout' && it.target === 'slide' && it._slide === slideEl);
   const input = h('input', { class: 'ta small num', type: 'number', min: '1', max: String(n), value: String((existing?.move?.to ?? meta.index) + 1) });
   const go = (to) => {
     closePopover();
@@ -371,7 +385,7 @@ export function openSlideMenu(anchorEl) {
     return;
   }
   const meta = slideMeta(slideEl);
-  const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it.slide?.index === meta.index);
+  const marked = S.items.find((it) => it.target === 'slide' && it.type === 'delete' && it._slide === slideEl);
   const anchor = anchorEl.getBoundingClientRect();
   const entry = (cls, ico, label, run) => h('button', { class: cls, onClick: run }, icon(ico, 15), label);
   const body = h('div', null,
@@ -496,7 +510,7 @@ export function openItem(id, anchor) {
       h('button', { class: 'iconbtn', title: tr('닫기 (Esc)'), onClick: () => closePopover() }, icon('x', 14))),
     allowed.length > 1 && h('div', { class: 'types' }, typeButtons),
     quoteEl, label, ta,
-    it._orphan && h('div', { class: 'label', style: { color: '#ce2c31' } }, tr('⚠️ 현재 화면에서 위치를 찾지 못했어요 (원문으로 전달돼요)')),
+    it._orphan && h('div', { class: 'label', style: { color: '#ce2c31' } }, tr(it._slideMissing ? '⚠️ 대상 슬라이드를 찾지 못했어요. 다른 페이지에 적용하지 않고 보류해요.' : '⚠️ 현재 화면에서 위치를 찾지 못했어요 (원문으로 전달돼요)')),
     h('div', { class: 'pop-foot' },
       h('button', { class: 'btn ghost danger', onClick: () => { closePopover(); removeItem(it.id); } }, icon('trash', 13), tr('표시 지우기')),
       h('span', { style: { flex: '1' } }),
@@ -646,7 +660,12 @@ export async function send(channel = 'agent') {
     const o = plain(it);
     o.n = nums.get(it.id);
     if (it._orphan) o.orphan = true;
+    if (it._slideMissing) o.slideMissing = true;
     if (it._slide && it._slide !== document.body) o.slide = slideMeta(it._slide);
+    if (it.target === 'text' && !it._orphan) {
+      const current = describeText(it._range)?.data;
+      if (current) { o.text = current.text; o.selector = current.selector; }
+    }
     return o;
   });
   const sentIds = new Set(items.map((it) => it.id));

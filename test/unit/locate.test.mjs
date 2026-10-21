@@ -68,6 +68,14 @@ test('findSlide only trusts unambiguous titles', () => {
   assert.equal(findSlide(files, null), null);
 });
 
+test('source hints never identify a stale slide by a regenerated positional id', () => {
+  const files = [file('index.html', '<section id="slide-1"><h1>원래 대상</h1></section>\n<section id="slide-2"><h1>다른 페이지</h1></section>')];
+  const hint = findSlide(files, { index: 1, id: 'slide-2', title: '원래 대상' });
+  assert.equal(hint.hits[0].line, 1);
+  const items = [{ target: 'slide', type: 'delete', slideMissing: true, slide: { index: 1, id: 'slide-2', title: '삭제된 대상' } }];
+  assert.deepEqual(annotate(items, files), {}, 'missing targets receive no misleading source hint');
+});
+
 test('loadSources collects the deck, local scripts, imports and data JSON — not CDN or minified files', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'redpen-loc-'));
   fs.writeFileSync(path.join(dir, 'index.html'), `<script src="slides.js?v=2"></script><script src="https://cdn.example.com/x.js"></script><script src="vendor.min.js"></script><script type="module" src="./app.js"></script>`);
@@ -88,4 +96,12 @@ test('annotate attaches source hints to items and per-slide hints', () => {
   const slides = annotate(items, files);
   assert.equal(items[0].source.status, 'exact');
   assert.equal(slides[3].hits[0].file, 'slides.js');
+});
+
+test('captured slide identities do not guess duplicate source locations from stale DOM order', () => {
+  const files = [file('slides.js', 'slide("B", "반복 문구")\nslide("C", "반복 문구")')];
+  const items = [{ target: 'text', text: { exact: '반복 문구', occurrence: 0, domCount: 2 }, slide: { index: 0, title: 'C', anchor: { titleUnique: true } } }];
+  annotate(items, files);
+  assert.equal(items[0].source.status, 'ambiguous');
+  assert.equal(items[0].source.pick, undefined, 'the C mark cannot receive B as a guessed source');
 });

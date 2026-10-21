@@ -85,6 +85,24 @@ test('multiple rounds share one set of rules', () => {
   assert.match(md, /· 3차/);
 });
 
+test('deleted slide marks cannot share a target group or deletion directive with a renumbered survivor', () => {
+  const r = {
+    round: 1, deck: { path: '/tmp/deck/index.html' },
+    items: [
+      { n: 1, type: 'delete', target: 'slide', slideMissing: true, orphan: true, slide: { index: 1, title: '삭제된 원래 페이지', anchor: { text: '이전 페이지 본문' } } },
+      { n: 2, type: 'delete', target: 'slide', slide: { index: 1, title: '지금의 다른 페이지', anchor: { text: '다른 페이지 본문' } } },
+    ],
+  };
+  const md = renderRounds([r]);
+  assert.equal((md.match(/## 슬라이드 2/g) || []).length, 2, 'same old number does not merge different slide identities');
+  assert.equal((md.match(/- 이 슬라이드 전체를 지우세요\./g) || []).length, 1, 'missing targets have no actionable deletion directive');
+  assert.match(md, /같은 번호의 다른 슬라이드에 적용하지 말고/);
+  assert.match(md, /표시 당시 슬라이드 내용: `이전 페이지 본문`/);
+  const en = renderRounds([{ ...r, lang: 'en' }]);
+  assert.match(en, /Do not apply this item to another slide/);
+  assert.equal(/\p{Script=Hangul}/u.test(en.replace(/삭제된 원래 페이지|이전 페이지 본문|지금의 다른 페이지|다른 페이지 본문/g, '')), false);
+});
+
 test('formatSource / where helpers', () => {
   assert.match(formatSource({ status: 'notfound', total: 0, hits: [] }), /못 찾음/);
   assert.match(formatSource({ status: 'guess', total: 3, pick: 1, hits: [{ file: 'a', line: 1 }, { file: 'a', line: 9, endLine: 11 }] }), /`a:9-11` \(같은 문구 3곳 중 2번째로 추정\)/);

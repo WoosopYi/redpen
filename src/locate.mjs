@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { positionalSlideId } from './client/slide-identity.js';
 
 /*
  * Source-line hints: given text the reviewer saw in the rendered page, find where it lives in the
@@ -214,11 +215,15 @@ export function findElement(files, el) {
 /** Where a slide starts, judged by its id or title. */
 export function findSlide(files, slide) {
   if (!slide) return null;
-  if (slide.id) {
+  if (slide.id && !(slide.anchor?.positionalId ?? positionalSlideId(slide.id, slide.index))) {
     const r = findElement(files, { attrs: { id: slide.id } });
     if (r?.total) return r;
   }
-  if (slide.title && slide.title.length >= 2) {
+  if (slide.anchor?.body && slide.anchor.contentUnique) {
+    const r = findText(files, slide.anchor.body);
+    if (r?.status === 'exact') return r;
+  }
+  if (slide.title && slide.title.length >= 2 && slide.anchor?.titleUnique !== false) {
     const r = findText(files, slide.title);
     if (r?.total && r.total <= 3) return r;
   }
@@ -230,8 +235,9 @@ export function annotate(items, files) {
   const slideSources = {};
   for (const it of items) {
     try {
+      if (it.slideMissing) continue;
       if (it.target === 'text' && it.text?.exact) {
-        it.source = findText(files, it.text.exact, { occurrence: it.text.occurrence, domCount: it.text.domCount });
+        it.source = findText(files, it.text.exact, { occurrence: it.text.occurrence, domCount: it.slide?.anchor ? 0 : it.text.domCount });
       } else if (it.target === 'element' && it.element) {
         it.source = findElement(files, it.element);
       }

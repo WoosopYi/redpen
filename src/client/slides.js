@@ -3,7 +3,7 @@ import { norm, sleep } from './util.js';
 
 /*
  * Slide detection. Decks differ (reveal.js, `.slide` sections stacked with opacity, scroll decks…),
- * so we try common structures in order and take the first that yields ≥ 2 slides.
+ * so we try common structures in order. Explicit deck classes also support a single remaining slide.
  * `redpen open --slide <selector>` overrides detection.
  */
 const CANDIDATES = [
@@ -51,10 +51,13 @@ function detect() {
     const els = outermost(qsa(config.slideSelector).filter(notOurs));
     if (els.length) return { selector: config.slideSelector, els, single: false };
   }
+  let loneSlide = null;
   for (const c of CANDIDATES) {
     const els = outermost(qsa(c.sel).filter(notOurs));
     if (els.length >= 2) return { selector: c.sel, els, single: false };
+    if (!loneSlide && els.length === 1 && !['body > section', 'main > section', 'section'].includes(c.sel)) loneSlide = { selector: c.sel, els, single: false };
   }
+  if (loneSlide) return loneSlide;
   return { selector: null, els: document.body ? [document.body] : [], single: true };
 }
 

@@ -35,6 +35,8 @@ The AI opens the review page in your browser and waits. Mark what you want chang
 
 In Codex (including Orca), the AI turn stays active while waiting for your review. Once the toolbar shows "AI waiting", send your marks without copying a prompt. Interrupting or ending the turn stops automatic receiving; use `$redpen` again to resume waiting.
 
+You can keep making marks while the AI applies an earlier request. If slides are deleted or reordered, Redpen follows the original slide using its title, content and identity. Marks whose target was deleted or cannot be distinguished are held and reported, rather than applied to a different page that now has the same number.
+
 You can also open a deck yourself:
 
 ```bash

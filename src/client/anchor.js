@@ -1,6 +1,7 @@
 import { getSlides, slideOf, slideTitle } from './slides.js';
 import { norm, clamp } from './util.js';
 import { where } from './summary.js';
+import { matchSlide, positionalSlideId, slideContentKey } from './slide-identity.js';
 
 /*
  * Anchoring: turn a live DOM selection into data that survives reloads (exact text + context +
@@ -164,16 +165,54 @@ export function startTag(el) {
   return s.length > 260 ? `${s.slice(0, 258)}…>` : s;
 }
 
+let slideSnapshots = null;
+const capturedSlides = new WeakMap();
+function snapshots() {
+  const slides = getSlides();
+  if (slideSnapshots?.slides === slides) return slideSnapshots;
+  const metas = slides.els.map((el, index) => {
+    const text = textOf(el, 2000);
+    const heading = el.querySelector('h1, h2, h3, [class*="title" i]');
+    const headingText = heading ? textOf(heading, 2000) : '';
+    const media = [...el.querySelectorAll('img, video, iframe, object')].map((m) =>
+      m.getAttribute('src') || m.getAttribute('data-src') || m.getAttribute('poster') || m.getAttribute('data') || '').filter(Boolean).join('\n').slice(0, 2000);
+    return {
+      index, total: slides.els.length, title: slideTitle(el), id: el.id || '', startTag: startTag(el),
+      anchor: { text, body: norm(headingText ? text.replace(headingText, '') : text), media, positionalId: positionalSlideId(el.id, index) },
+    };
+  });
+  const titles = new Map();
+  const contents = new Map();
+  const ids = new Map();
+  for (const meta of metas) {
+    titles.set(meta.title, (titles.get(meta.title) || 0) + 1);
+    ids.set(meta.id, (ids.get(meta.id) || 0) + 1);
+    const key = slideContentKey(meta.anchor);
+    contents.set(key, (contents.get(key) || 0) + 1);
+  }
+  for (const meta of metas) {
+    meta.anchor.titleUnique = titles.get(meta.title) === 1;
+    meta.anchor.idUnique = ids.get(meta.id) === 1;
+    meta.anchor.contentUnique = contents.get(slideContentKey(meta.anchor)) === 1;
+    capturedSlides.set(slides.els[meta.index], meta);
+  }
+  return slideSnapshots = { slides, metas };
+}
+
 export function slideMeta(slideEl) {
-  const { els, single } = getSlides();
-  if (!slideEl || single || slideEl === document.body) return { index: 0, total: 1, title: norm(document.title), single: true };
-  return {
-    index: els.indexOf(slideEl),
-    total: els.length,
-    title: slideTitle(slideEl),
-    id: slideEl.id || '',
-    startTag: startTag(slideEl),
+  if (!slideEl || slideEl === document.body) return { index: 0, total: 1, title: norm(document.title), single: true };
+  const { slides, metas } = snapshots();
+  return metas[slides.els.indexOf(slideEl)] || capturedSlides.get(slideEl) || {
+    index: -1, total: slides.els.length, title: slideTitle(slideEl), id: slideEl.id || '',
+    anchor: { text: textOf(slideEl, 2000), titleUnique: false, contentUnique: false, idUnique: false },
   };
+}
+
+export function anchorSlide(meta) {
+  if (meta?.single) return document.body;
+  const { slides, metas } = snapshots();
+  const index = matchSlide(meta, metas);
+  return index >= 0 ? slides.els[index] : null;
 }
 
 /** Position of a rect relative to its slide, as fractions (0–1). */
@@ -253,19 +292,17 @@ function cachedIndex(scope, cache) {
 }
 
 /**
- * Find a text mark again after the page changed. On its own slide a unique occurrence is trusted;
- * anywhere else (slides added, removed or re-rendered) the surrounding text must clearly agree.
- * Otherwise the mark is reported as lost instead of silently landing on the same words elsewhere.
+ * Find text inside the identified logical slide. A removed or ambiguous slide must not redirect
+ * its marks to matching words on another page.
  */
-export function anchorText(item, cache = new Map()) {
+export function anchorText(item, cache = new Map(), home = anchorSlide(item.slide)) {
   const t = item.text;
   if (!t?.exact) return null;
   const pre = squash(t.prefix || '');
   const suf = squash(t.suffix || '');
-  const { els } = getSlides();
   const hadSlide = !!item.slide && !item.slide.single && Number.isInteger(item.slide.index);
-  const home = hadSlide && els[item.slide.index] && els[item.slide.index] !== document.body ? els[item.slide.index] : null;
-  for (const scope of home ? [home, document.body] : [document.body]) {
+  if (hadSlide && !home) return null;
+  for (const scope of [home || document.body]) {
     const idx = cachedIndex(scope, cache);
     const found = [];
     for (let i = idx.text.indexOf(t.exact); i !== -1; i = idx.text.indexOf(t.exact, i + 1)) {
@@ -333,14 +370,15 @@ function elementScore(c, E) {
   return s;
 }
 
-export function anchorElement(item) {
+export function anchorElement(item, home = anchorSlide(item.slide)) {
   const E = item.element;
   if (!E) return null;
-  const { els } = getSlides();
-  const slideEl = Number.isInteger(item.slide?.index) && !item.slide.single ? els[item.slide.index] || null : null;
+  const hadSlide = !!item.slide && !item.slide.single;
+  if (hadSlide && !home) return null;
+  const slideEl = home || document.body;
   const byPath = resolvePath(slideEl || document.body, E.path);
   if (byPath && elementScore(byPath, E) >= (E.text ? 3 : 0.5)) return byPath;
-  // Best unique match by id / src / text; outside its own slide it needs id- or src-level evidence.
+  // Best unique match by id / src / text inside the identified slide.
   const pick = (root, min) => {
     let best = null;
     let bestScore = 0;
@@ -355,7 +393,7 @@ export function anchorElement(item) {
     }
     return bestScore >= min && bestScore > second ? best : null;
   };
-  return (slideEl && pick(slideEl, 3)) || pick(document.body, 4);
+  return pick(slideEl, 3);
 }
 
 // ---- regions ---------------------------------------------------------------------

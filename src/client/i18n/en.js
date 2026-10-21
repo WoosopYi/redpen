@@ -9,6 +9,13 @@ const ord = (n) => {
 };
 
 export default {
+  '⚠️ 대상 슬라이드를 찾지 못했어요. 다른 페이지에 적용하지 않고 보류해요.': '⚠️ The target slide could not be identified. This mark is held instead of being applied to another page.',
+  '원래 슬라이드 {n}': 'Original slide {n}',
+  '대상 슬라이드 확인 필요': 'Check target slide',
+  '- ⚠️ 대상 슬라이드를 식별하지 못했습니다. 이미 삭제됐을 수 있습니다. 같은 번호의 다른 슬라이드에 적용하지 말고 이 항목을 보류해 사용자에게 알려 주세요.': '- ⚠️ The target slide could not be identified and may already have been deleted. Do not apply this item to another slide with the same number. Hold it and inform the user.',
+  '- 표시 당시 슬라이드 내용: {text}': '- Slide content when marked: {text}',
+  '- 슬라이드 식별자: {id}': '- Slide identifier: {id}',
+  '- 슬라이드 번호 기준: 표시 당시 문서 순서상 {sel} 요소 (총 {n}장) — 현재 순서가 달라졌다면 제목·내용으로 찾으세요': '- Slide numbering: {sel} elements in document order when marked ({n} slides) — if the order has changed, identify the target by title and content',
   // ---- shared words ----
   '빨간펜': 'Redpen',
   '삭제': 'Delete',
