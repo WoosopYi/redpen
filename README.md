@@ -1,12 +1,12 @@
 <div align="center">
 
-# <img src="docs/logo.svg" width="30" height="30" alt=""> Redpen
+# <img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/logo.svg" width="30" height="30" alt=""> Redpen
 
 Mark up your AI-made HTML slides in the browser, and the AI that made them fixes them.
 
 **English** | [한국어](README.ko.md)
 
-<p><img src="docs/hero-en.png" alt="Slides marked up with Redpen" width="100%"></p>
+<p><img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/hero-en.png" alt="Slides marked up with Redpen" width="100%"></p>
 
 </div>
 
@@ -16,16 +16,20 @@ Redpen lets you mark the slides directly in the browser. Drag over a sentence to
 
 ## Install
 
-Requires Node.js 18 or later and git.
+Requires Node.js 18.17 or later.
 
 ```bash
-npm install -g --allow-git=all github:WoosopYi/redpen
+npm install -g @woosopyi/redpen
 redpen setup
 ```
 
-Redpen isn't on npm yet, so this installs it straight from GitHub. npm 12 and later refuse to install from git unless you add `--allow-git=all`. Older versions may warn that they don't know the option, but the install still works.
+To run without a global install:
 
-`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run the same install command again; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
+```bash
+npx @woosopyi/redpen slides/index.html
+```
+
+`redpen setup` installs the redpen skill for Claude Code and Codex. To update, run `npm update -g @woosopyi/redpen`; the installed skill catches up the next time you open Redpen. To uninstall, run `redpen setup --remove` and then `npm uninstall -g @woosopyi/redpen`.
 
 ## Usage
 
@@ -49,25 +53,25 @@ Whatever you send is saved, and the AI applies it later when you say "apply my r
 
 Drag over the text, then press D to delete it, R to replace it, or C to comment.
 
-<img src="docs/media/en/01-text.gif" alt="Dragging over text and pressing D, R and C to delete, replace and comment" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/en/01-text.gif" alt="Dragging over text and pressing D, R and C to delete, replace and comment" width="100%">
 
 ### Changing the layout
 
 In Layout mode, click a card or an image and drag it to move it. Drop it on another slot to change the order. Pull a corner to resize it, and use the bar below it for font size and spacing. What you see is a preview; the AI makes the real change in the files after you send.
 
-<img src="docs/media/en/02-layout.gif" alt="Dragging a card to reorder it and pulling a corner to enlarge it" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/en/02-layout.gif" alt="Dragging a card to reorder it and pulling a corner to enlarge it" width="100%">
 
 ### Empty space and whole slides
 
 In Area mode, draw a box on empty space and write something like "add a picture here". The slide menu in the toolbar lets you comment on a whole slide, delete it or move it. You can also sketch a new layout for the slide there by drawing boxes.
 
-<img src="docs/media/en/03-areas-slides.gif" alt="Leaving a note on empty space, sketching a new layout and marking a slide for deletion" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/en/03-areas-slides.gif" alt="Leaving a note on empty space, sketching a new layout and marking a slide for deletion" width="100%">
 
 ### Sending to the AI
 
 The waiting AI session picks up your marks and edits the source. The toolbar shows "AI working" in the meantime, and the page reloads when it's done.
 
-<img src="docs/media/en/04-send.gif" alt="The AI session applying the edit request and the page reloading" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/en/04-send.gif" alt="The AI session applying the edit request and the page reloading" width="100%">
 
 These are real screen recordings. The deck in them is in [examples/showcase](examples/showcase), and you can open it with `redpen examples/showcase/en.html --lang en`.
 

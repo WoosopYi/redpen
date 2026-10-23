@@ -1,12 +1,12 @@
 <div align="center">
 
-# <img src="docs/logo.svg" width="30" height="30" alt=""> 빨간펜
+# <img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/logo.svg" width="30" height="30" alt=""> 빨간펜
 
 AI가 만든 HTML 슬라이드에 고칠 곳을 표시하면, 그 슬라이드를 만든 AI가 고쳐 줍니다.
 
 [English](README.md) | **한국어**
 
-<p><img src="docs/hero.png" alt="빨간펜으로 슬라이드에 고칠 곳을 표시한 화면" width="100%"></p>
+<p><img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/hero.png" alt="빨간펜으로 슬라이드에 고칠 곳을 표시한 화면" width="100%"></p>
 
 </div>
 
@@ -16,16 +16,20 @@ AI로 HTML 슬라이드를 만들면 초안은 금방 나오는데, 고치는 �
 
 ## 설치
 
-Node.js 18 이상과 git이 필요합니다.
+Node.js 18.17 이상이 필요합니다.
 
 ```bash
-npm install -g --allow-git=all github:WoosopYi/redpen
+npm install -g @woosopyi/redpen
 redpen setup
 ```
 
-아직 npm에 올리기 전이라 GitHub에서 바로 설치합니다. npm 12부터는 `--allow-git=all`을 붙여야 git에서 받는 설치가 됩니다. 그보다 예전 npm은 모르는 옵션이라고 경고할 수 있지만 설치는 그대로 됩니다.
+전역 설치 없이 한 번 실행하려면:
 
-`redpen setup`은 Claude Code와 Codex에 redpen 스킬을 설치합니다. 업데이트는 같은 설치 명령을 다시 실행하면 되고, 설치된 스킬은 다음에 빨간펜을 열 때 새 버전으로 바뀝니다. 지울 때는 `redpen setup --remove`를 실행한 다음 `npm uninstall -g @woosopyi/redpen`을 하면 됩니다.
+```bash
+npx @woosopyi/redpen slides/index.html
+```
+
+`redpen setup`은 Claude Code와 Codex에 redpen 스킬을 설치합니다. 업데이트는 `npm update -g @woosopyi/redpen`을 실행하면 되고, 설치된 스킬은 다음에 빨간펜을 열 때 새 버전으로 바뀝니다. 지울 때는 `redpen setup --remove`를 실행한 다음 `npm uninstall -g @woosopyi/redpen`을 하면 됩니다.
 
 ## 사용법
 
@@ -49,25 +53,25 @@ redpen slides/index.html
 
 고칠 문장을 드래그한 뒤 D를 누르면 삭제, R은 다른 문구로 바꾸기, C는 코멘트입니다.
 
-<img src="docs/media/ko/01-text.gif" alt="문장을 드래그하고 D, R, C로 삭제, 수정, 코멘트하는 영상" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/ko/01-text.gif" alt="문장을 드래그하고 D, R, C로 삭제, 수정, 코멘트하는 영상" width="100%">
 
 ### 레이아웃 바꾸기
 
 레이아웃 모드에서 카드나 이미지를 클릭해 끌면 옮겨지고, 다른 칸 위에 놓으면 순서가 바뀝니다. 모서리를 끌면 크기가 바뀌고, 아래 막대에서 글자 크기와 간격도 조절할 수 있습니다. 화면에 보이는 건 미리보기이고, 실제 파일은 보낸 뒤에 AI가 고칩니다.
 
-<img src="docs/media/ko/02-layout.gif" alt="카드를 끌어 순서를 바꾸고 모서리를 끌어 키우는 영상" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/ko/02-layout.gif" alt="카드를 끌어 순서를 바꾸고 모서리를 끌어 키우는 영상" width="100%">
 
 ### 빈 공간과 슬라이드 전체
 
 영역 모드에서는 빈 곳에 상자를 그리고 "여기에 그림 추가" 같은 지시를 남깁니다. 툴바의 슬라이드 메뉴에서는 슬라이드 전체에 코멘트를 달거나, 지우거나, 순서를 옮길 수 있습니다. 칸을 그려서 새 배치를 스케치하는 것도 여기서 합니다.
 
-<img src="docs/media/ko/03-areas-slides.gif" alt="빈 곳에 지시를 남기고, 새 배치를 스케치하고, 슬라이드에 삭제 표시를 하는 영상" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/ko/03-areas-slides.gif" alt="빈 곳에 지시를 남기고, 새 배치를 스케치하고, 슬라이드에 삭제 표시를 하는 영상" width="100%">
 
 ### AI에게 보내기
 
 보내면 기다리던 AI 세션이 받아서 소스를 고칩니다. 고치는 동안 툴바에 'AI 반영 중'이 뜨고, 끝나면 화면이 새로고침됩니다.
 
-<img src="docs/media/ko/04-send.gif" alt="보낸 수정 요청을 AI 세션이 반영하고 화면이 새로고침되는 영상" width="100%">
+<img src="https://raw.githubusercontent.com/WoosopYi/redpen/main/docs/media/ko/04-send.gif" alt="보낸 수정 요청을 AI 세션이 반영하고 화면이 새로고침되는 영상" width="100%">
 
 영상은 실제 화면을 녹화한 것입니다. 영상 속 덱은 [examples/showcase](examples/showcase)에 있으니 `redpen examples/showcase/index.html`로 직접 열어 볼 수 있습니다.
 
